@@ -1,0 +1,798 @@
+<template>
+  <div>
+    <!-- Botón activador -->
+    <v-btn
+      color="error"
+      @click="abrirDialog"
+      prepend-icon="mdi-cash-minus"
+      :disabled="loading"
+      size="large"
+      elevation="2"
+    >
+      Registrar Egreso
+    </v-btn>
+
+    <!-- Dialog -->
+    <v-dialog v-model="dialogVisible" max-width="700" persistent>
+      <v-card>
+        <!-- Header -->
+        <v-card-title class="bg-error text-white pa-4">
+          <div class="d-flex align-center">
+            <v-icon color="white" size="28" class="me-3">mdi-cash-remove</v-icon>
+            <div>
+              <h3>Registrar Nuevo Egreso</h3>
+              <p class="text-body-2 opacity-90 mb-0">Complete la información del movimiento de salida</p>
+            </div>
+          </div>
+        </v-card-title>
+
+        <v-form ref="formEgreso" v-model="formularioValido" @submit.prevent="guardarEgreso">
+          <v-card-text class="pa-4">
+            <v-row>
+              <!-- Monto del egreso -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="egreso.monto"
+                  label="Monto del Egreso *"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  prefix="Q"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="reglasRequeridas"
+                  required
+                  @input="calcularCambio"
+                >
+                  <template v-slot:prepend-inner>
+                    <v-icon color="error" size="20">mdi-currency-usd</v-icon>
+                  </template>
+                </v-text-field>
+              </v-col>
+
+              <!-- Tipo de pago -->
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="egreso.id_tipo_pago"
+                  :items="tiposPagoItems"
+                  label="Tipo de Pago *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="reglasRequeridas"
+                  required
+                  @update:model-value="onTipoPagoChange"
+                >
+                  <template v-slot:prepend-inner>
+                    <v-icon :color="getColorTipoPago(egreso.id_tipo_pago)" size="20">
+                      {{ getIconoTipoPago(egreso.id_tipo_pago) }}
+                    </v-icon>
+                  </template>
+                </v-select>
+              </v-col>
+
+              <!-- Descripción del egreso -->
+              <v-col cols="12">
+                <v-textarea
+                  v-model="egreso.descripcion"
+                  label="Descripción del Egreso *"
+                  variant="outlined"
+                  density="comfortable"
+                  rows="3"
+                  counter="255"
+                  :rules="reglasRequeridas"
+                  required
+                  placeholder="Ej: Compra de materiales, pago a proveedor, gastos operativos..."
+                >
+                  <template v-slot:prepend-inner>
+                    <v-icon color="grey" size="20">mdi-text</v-icon>
+                  </template>
+                </v-textarea>
+              </v-col>
+
+              <!-- Empleado responsable -->
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="egreso.id_empleado"
+                  :items="empleadosItems"
+                  label="Empleado Responsable *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="reglasRequeridas"
+                  required
+                >
+                  <template v-slot:prepend-inner>
+                    <v-icon color="primary" size="20">mdi-account</v-icon>
+                  </template>
+                </v-select>
+              </v-col>
+
+              <!-- Número de recibo (solo para tarjeta/transferencia) -->
+              <v-col cols="12" md="6" v-if="requiereRecibo">
+                <v-text-field
+                  v-model="egreso.numero_recibo"
+                  label="Número de Recibo/Referencia *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="requiereRecibo ? reglasRequeridas : []"
+                  :required="requiereRecibo"
+                  placeholder="Ej: 123456789, REF-001"
+                >
+                  <template v-slot:prepend-inner>
+                    <v-icon color="info" size="20">mdi-receipt</v-icon>
+                  </template>
+                </v-text-field>
+              </v-col>
+
+              <!-- Campos para efectivo -->
+              <template v-if="esEfectivo">
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="egreso.monto_recibido"
+                    label="Monto Entregado en Efectivo"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    prefix="Q"
+                    variant="outlined"
+                    density="comfortable"
+                    @input="calcularCambio"
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon color="success" size="20">mdi-hand-coin</v-icon>
+                    </template>
+                  </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6" v-if="mostrarCambio">
+                  <v-text-field
+                    :model-value="formatearMoneda(cambioCalculado)"
+                    label="Cambio a Devolver"
+                    variant="outlined"
+                    density="comfortable"
+                    readonly
+                    color="warning"
+                  >
+                    <template v-slot:prepend-inner>
+                      <v-icon color="warning" size="20">mdi-cash-refund</v-icon>
+                    </template>
+                  </v-text-field>
+                </v-col>
+              </template>
+            </v-row>
+
+            <!-- Resumen del egreso -->
+            <v-card class="mt-4" variant="outlined">
+              <v-card-title class="bg-grey-lighten-4 pa-3">
+                <v-icon class="me-2" size="20">mdi-information-outline</v-icon>
+                Resumen del Egreso
+              </v-card-title>
+              <v-card-text class="pa-3">
+                <v-row dense>
+                  <v-col cols="6" sm="3">
+                    <div class="text-body-2 text-grey">Monto Total</div>
+                    <div class="text-h6 text-error">{{ formatearMoneda(egreso.monto || 0) }}</div>
+                  </v-col>
+                  <v-col cols="6" sm="3">
+                    <div class="text-body-2 text-grey">Método de Pago</div>
+                    <div class="text-body-1">{{ getNombreTipoPago(egreso.id_tipo_pago) }}</div>
+                  </v-col>
+                  <v-col cols="6" sm="3" v-if="cambioCalculado > 0">
+                    <div class="text-body-2 text-grey">Cambio a Devolver</div>
+                    <div class="text-h6 text-warning">{{ formatearMoneda(cambioCalculado) }}</div>
+                  </v-col>
+                  <v-col cols="6" sm="3">
+                    <div class="text-body-2 text-grey">Empleado</div>
+                    <div class="text-body-1">{{ getNombreEmpleado(egreso.id_empleado) }}</div>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+          </v-card-text>
+
+          <!-- Acciones -->
+          <v-card-actions class="pa-4 pt-0">
+            <v-spacer></v-spacer>
+            <v-btn
+              color="grey"
+              variant="outlined"
+              @click="cancelar"
+              :disabled="guardando"
+              size="large"
+            >
+              <v-icon start>mdi-close</v-icon>
+              Cancelar
+            </v-btn>
+            <v-btn
+              color="error"
+              variant="elevated"
+              type="submit"
+              :loading="guardando"
+              :disabled="!formularioValido"
+              size="large"
+              class="ml-2"
+            >
+              <v-icon start>mdi-content-save</v-icon>
+              Registrar Egreso
+            </v-btn>
+          </v-card-actions>
+        </v-form>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar 
+      v-model="snackbar.show" 
+      :color="snackbar.color"
+      location="top right"
+      timeout="4000"
+    >
+      <div class="d-flex align-center">
+        <v-icon class="me-2" size="20">
+          {{ getSnackbarIcon(snackbar.color) }}
+        </v-icon>
+        {{ snackbar.text }}
+      </div>
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar.show = false" size="small">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </div>
+</template>
+<script>
+import { useCajaAPI, useTiposPagoAPI, useEmpleadosAPI } from '../composables/useCajaAPI.js'
+
+export default {
+  name: 'RegistrarEgreso',
+  emits: ['egreso-creado', 'actualizar-movimientos'],
+  data() {
+    return {
+      dialogVisible: false,
+      formularioValido: false,
+      guardando: false,
+      
+      // Datos de los composables
+      tiposPago: [],
+      empleados: [],
+      
+      egreso: {
+        monto: null,
+        tipo_movimiento: 'egreso',
+        descripcion: '',
+        numero_recibo: '',
+        monto_recibido: null,
+        cambio: null,
+        id_empleado: null,
+        id_orden: null,
+        id_tipo_pago: null
+      },
+      reglasRequeridas: [
+        v => !!v || 'Este campo es requerido',
+        v => (v && v.toString().length > 0) || 'Este campo es requerido'
+      ],
+      snackbar: {
+        show: false,
+        text: '',
+        color: 'success'
+      }
+    }
+  },
+  setup() {
+    // Inicializar composables
+    const cajaAPI = useCajaAPI()
+    const tiposPagoAPI = useTiposPagoAPI()
+    const empleadosAPI = useEmpleadosAPI()
+    
+    return {
+      cajaAPI,
+      tiposPagoAPI,
+      empleadosAPI
+    }
+  },
+  async created() {
+    // Cargar datos iniciales
+    await this.cargarDatosIniciales()
+  },
+  computed: {
+    tiposPagoItems() {
+      return this.tiposPago.map(tipo => ({
+        title: tipo.nombre,
+        value: tipo.id,
+        props: {
+          subtitle: this.getDescripcionTipo(tipo.nombre)
+        }
+      }))
+    },
+    empleadosItems() {
+      return this.empleados.map(emp => ({
+        title: emp.nombre,
+        value: emp.id,
+        props: {
+          subtitle: emp.cargo || emp.puesto || 'Empleado'
+        }
+      }))
+    },
+    tipoSeleccionado() {
+      return this.tiposPago.find(tipo => tipo.id === this.egreso.id_tipo_pago)
+    },
+    esEfectivo() {
+      return this.tipoSeleccionado?.nombre?.toLowerCase().includes('efectivo')
+    },
+    requiereRecibo() {
+      const nombre = this.tipoSeleccionado?.nombre?.toLowerCase() || ''
+      return nombre.includes('tarjeta') || nombre.includes('transferencia')
+    },
+    cambioCalculado() {
+      if (!this.esEfectivo || !this.egreso.monto_recibido || !this.egreso.monto) {
+        return 0
+      }
+      const cambio = parseFloat(this.egreso.monto_recibido) - parseFloat(this.egreso.monto)
+      return cambio > 0 ? cambio : 0
+    },
+    mostrarCambio() {
+      return this.esEfectivo && this.egreso.monto_recibido && parseFloat(this.egreso.monto_recibido) > parseFloat(this.egreso.monto || 0)
+    },
+    // Exponer el estado de loading del composable
+    loading() {
+      return this.cajaAPI.loading.value
+    }
+  },
+  watch: {
+    dialogVisible(newVal) {
+      if (newVal) {
+        this.inicializarFormulario()
+      }
+    },
+    cambioCalculado(newVal) {
+      this.egreso.cambio = newVal > 0 ? newVal : null
+    }
+  },
+  methods: {
+    async cargarDatosIniciales() {
+      try {
+        console.log('Cargando datos iniciales...')
+        
+        // Cargar tipos de pago
+        const tiposPagoData = await this.tiposPagoAPI.obtenerTiposPago()
+        this.tiposPago = Array.isArray(tiposPagoData) ? tiposPagoData : (tiposPagoData.data || [])
+        console.log('Tipos de pago cargados:', this.tiposPago)
+        
+        // Cargar empleados
+        const empleadosData = await this.empleadosAPI.obtenerEmpleados()
+        this.empleados = Array.isArray(empleadosData) ? empleadosData : (empleadosData.data || [])
+        console.log('Empleados cargados:', this.empleados)
+        
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error)
+        this.mostrarError('Error al cargar los datos necesarios')
+        
+        // Usar datos de fallback si hay error
+        this.tiposPago = [
+          { id: 1, nombre: 'Efectivo' },
+          { id: 2, nombre: 'Tarjeta de Débito' },
+          { id: 3, nombre: 'Tarjeta de Crédito' },
+          { id: 4, nombre: 'Transferencia Bancaria' }
+        ]
+        
+        this.empleados = [
+          { id: 1, nombre: 'Osman Reyes', puesto: 'Atención al Cliente' }
+        ]
+      }
+    },
+    
+    abrirDialog() {
+      this.dialogVisible = true
+    },
+    
+    inicializarFormulario() {
+      const usuarioActual = JSON.parse(localStorage.getItem('usuario') || '{}')
+      
+      this.egreso = {
+        monto: null,
+        tipo_movimiento: 'egreso',
+        descripcion: '',
+        numero_recibo: '',
+        monto_recibido: null,
+        cambio: null,
+        id_empleado: usuarioActual.id || (this.empleados.length > 0 ? this.empleados[0].id : null),
+        id_orden: null,
+        id_tipo_pago: null
+      }
+      
+      if (this.$refs.formEgreso) {
+        this.$refs.formEgreso.resetValidation()
+      }
+    },
+    
+    onTipoPagoChange() {
+      this.egreso.numero_recibo = ''
+      this.egreso.monto_recibido = null
+      this.egreso.cambio = null
+    },
+    
+    calcularCambio() {
+      this.$nextTick(() => {
+        this.egreso.cambio = this.cambioCalculado > 0 ? this.cambioCalculado : null
+      })
+    },
+    
+    async guardarEgreso() {
+      if (!this.formularioValido) {
+        this.mostrarError('Por favor complete todos los campos requeridos')
+        return
+      }
+
+      this.guardando = true
+      try {
+        const datosEgreso = {
+          ...this.egreso,
+          monto: parseFloat(this.egreso.monto),
+          monto_recibido: this.egreso.monto_recibido ? parseFloat(this.egreso.monto_recibido) : null,
+          cambio: this.egreso.cambio ? parseFloat(this.egreso.cambio) : null
+        }
+
+        // Validaciones antes de enviar
+        if (this.requiereRecibo && !datosEgreso.numero_recibo) {
+          this.mostrarError('El número de recibo es requerido para este tipo de pago')
+          return
+        }
+
+        if (this.esEfectivo && datosEgreso.monto_recibido && datosEgreso.monto_recibido < datosEgreso.monto) {
+          this.mostrarError('El monto recibido no puede ser menor al monto del egreso')
+          return
+        }
+
+        console.log('Enviando datos del egreso:', datosEgreso)
+        
+        // Usar el composable en lugar de axios directo
+        const response = await this.cajaAPI.crearMovimiento(datosEgreso)
+        
+        console.log('Respuesta del servidor:', response)
+        
+        if (response) {
+          this.mostrarExito('Egreso registrado exitosamente')
+          this.$emit('egreso-creado', response)
+          this.$emit('actualizar-movimientos')
+          this.cerrarDialog()
+        }
+      } catch (error) {
+        console.error('Error al guardar egreso:', error)
+        
+        // Manejar diferentes tipos de error
+        let mensaje = 'Error al registrar el egreso'
+        
+        if (error.message) {
+          mensaje = error.message
+        } else if (typeof error === 'string') {
+          mensaje = error
+        }
+        
+        this.mostrarError(mensaje)
+      } finally {
+        this.guardando = false
+      }
+    },
+    
+    cancelar() {
+      this.cerrarDialog()
+    },
+    
+    cerrarDialog() {
+      this.dialogVisible = false
+      this.inicializarFormulario()
+    },
+    
+    getNombreTipoPago(id) {
+      const tipo = this.tiposPago.find(t => t.id === id)
+      return tipo ? tipo.nombre : 'No seleccionado'
+    },
+    
+    getNombreEmpleado(id) {
+      const empleado = this.empleados.find(e => e.id === id)
+      return empleado ? empleado.nombre : 'No seleccionado'
+    },
+    
+    getColorTipoPago(id) {
+      const nombre = this.getNombreTipoPago(id).toLowerCase()
+      const colores = {
+        'efectivo': 'success',
+        'tarjeta': 'primary',
+        'transferencia': 'info'
+      }
+      return Object.keys(colores).find(key => nombre.includes(key)) 
+        ? colores[Object.keys(colores).find(key => nombre.includes(key))] 
+        : 'slate-500'
+    },
+    
+    getIconoTipoPago(id) {
+      const nombre = this.getNombreTipoPago(id).toLowerCase()
+      const iconos = {
+        'efectivo': 'mdi-cash',
+        'tarjeta': 'mdi-credit-card',
+        'transferencia': 'mdi-bank-transfer'
+      }
+      return Object.keys(iconos).find(key => nombre.includes(key)) 
+        ? iconos[Object.keys(iconos).find(key => nombre.includes(key))] 
+        : 'mdi-help-circle'
+    },
+    
+    getDescripcionTipo(nombre) {
+      const descripciones = {
+        'Efectivo': 'Pago en billetes y monedas',
+        'Tarjeta de Débito': 'Tarjeta de débito bancaria',
+        'Tarjeta de Crédito': 'Tarjeta de crédito',
+        'Transferencia Bancaria': 'Transferencia bancaria electrónica'
+      }
+      return descripciones[nombre] || 'Método de pago'
+    },
+    
+    getSnackbarIcon(color) {
+      const iconos = {
+        success: 'mdi-check-circle',
+        error: 'mdi-alert-circle',
+        warning: 'mdi-alert',
+        info: 'mdi-information'
+      }
+      return iconos[color] || 'mdi-information'
+    },
+    
+    formatearMoneda(monto) {
+      return new Intl.NumberFormat('es-GT', {
+        style: 'currency',
+        currency: 'GTQ'
+      }).format(monto)
+    },
+    
+    mostrarExito(mensaje) {
+      this.snackbar = { show: true, text: mensaje, color: 'success' }
+    },
+    
+    mostrarError(mensaje) {
+      this.snackbar = { show: true, text: mensaje, color: 'error' }
+    }
+  }
+}
+</script>
+
+<style scoped>
+/* Variables CSS para mantener consistencia */
+:root {
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+}
+
+/* Botón activador profesional */
+.professional-btn {
+  border-radius: 16px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.professional-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Dialog profesional */
+.professional-dialog :deep(.v-overlay__content) {
+  margin: 24px;
+  max-width: 800px;
+  width: calc(100vw - 48px);
+}
+
+.dialog-card {
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+}
+
+/* Header del dialog */
+.dialog-header {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 0;
+}
+
+.header-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Grupos de inputs */
+.input-group {
+  margin-bottom: 8px;
+}
+
+.input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-600);
+  margin-bottom: 8px;
+}
+
+/* Inputs profesionales */
+.professional-input :deep(.v-field),
+.professional-select :deep(.v-field),
+.professional-textarea :deep(.v-field) {
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  border-width: 2px;
+}
+
+.professional-input :deep(.v-field):hover,
+.professional-select :deep(.v-field):hover,
+.professional-textarea :deep(.v-field):hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.professional-input :deep(.v-field--focused),
+.professional-select :deep(.v-field--focused),
+.professional-textarea :deep(.v-field--focused) {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.change-input :deep(.v-field) {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+}
+
+/* Tarjeta de resumen */
+.summary-card {
+  border-radius: 20px;
+  border: 2px solid var(--slate-200);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.summary-header {
+  background: linear-gradient(135deg, var(--slate-600), var(--slate-700));
+  color: white;
+}
+
+.summary-item {
+  padding: 12px 0;
+}
+
+.summary-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+
+/* Botones de acción */
+.dialog-actions {
+  border-top: 1px solid var(--slate-200);
+  background: var(--slate-50);
+}
+
+.action-btn-cancel {
+  border-radius: 16px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-right: 12px;
+  transition: all 0.3s ease;
+}
+
+.action-btn-cancel:hover {
+  transform: translateY(-2px);
+  background: rgba(100, 116, 139, 0.1);
+}
+
+.action-btn-save {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 16px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.action-btn-save:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.4);
+}
+
+/* Snackbar profesional */
+.professional-snackbar {
+  border-radius: 16px;
+}
+
+.professional-snackbar :deep(.v-snackbar__content) {
+  padding: 16px 24px;
+  border-radius: 16px;
+}
+
+/* Animaciones */
+.dialog-card {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Estados de inputs */
+.professional-input :deep(.v-field--error),
+.professional-select :deep(.v-field--error),
+.professional-textarea :deep(.v-field--error) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .professional-dialog :deep(.v-overlay__content) {
+    margin: 12px;
+    width: calc(100vw - 24px);
+  }
+  
+  .dialog-header {
+    padding: 20px !important;
+  }
+  
+  .header-icon-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .action-btn-cancel,
+  .action-btn-save {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}
+
+/* Estados de carga */
+.action-btn-save:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Efectos de focus mejorados */
+.professional-input :deep(.v-field__input),
+.professional-select :deep(.v-field__input),
+.professional-textarea :deep(.v-field__input) {
+  padding: 12px 16px;
+}
+
+/* Iconos en inputs */
+.professional-input :deep(.v-field__prepend-inner),
+.professional-select :deep(.v-field__prepend-inner),
+.professional-textarea :deep(.v-field__prepend-inner) {
+  padding-top: 12px;
+}
+</style>
