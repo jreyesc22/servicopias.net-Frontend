@@ -2,7 +2,7 @@
   <v-container class="py-4" max-width="800">
     <v-card>
       <v-card-title class="text-h6">
-        💳 Historial de Abonos - Orden #{{ orden.id }}
+        Historial de Abonos - Orden #{{ orden.id }}
       </v-card-title>
 
       <v-card-text>

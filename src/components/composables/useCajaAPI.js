@@ -40,27 +40,27 @@ export function useCajaAPI() {
     }
   }
 
-  // 📈 Obtener movimientos de hoy
+  //  Obtener movimientos de hoy
   const obtenerMovimientosHoy = async () => {
     return await fetchAPI(`${API_BASE_URL}/today/movimientos`)
   }
 
-  // 📅 Obtener movimientos por fecha específica
+  // Obtener movimientos por fecha específica
   const obtenerMovimientosPorFecha = async (fecha) => {
     return await fetchAPI(`${API_BASE_URL}/fecha/${fecha}/movimientos`)
   }
 
-  // 📋 Obtener todos los movimientos
+  // Obtener todos los movimientos
   const obtenerTodosMovimientos = async () => {
     return await fetchAPI(`${API_BASE_URL}/all`)
   }
 
-  // 👁️ Obtener movimiento por ID
+  // Obtener movimiento por ID
   const obtenerMovimientoPorId = async (id) => {
     return await fetchAPI(`${API_BASE_URL}/${id}`)
   }
 
-  // ➕ Crear nuevo movimiento
+  // Crear nuevo movimiento
   const crearMovimiento = async (datosMovimiento) => {
     return await fetchAPI(`${API_BASE_URL}/create`, {
       method: 'POST',
@@ -68,7 +68,7 @@ export function useCajaAPI() {
     })
   }
 
-  // ✏️ Actualizar movimiento (si implementas esta funcionalidad)
+  //  Actualizar movimiento (si implementas esta funcionalidad)
   const actualizarMovimiento = async (id, datosMovimiento) => {
     return await fetchAPI(`${API_BASE_URL}/${id}`, {
       method: 'PUT',
@@ -76,24 +76,24 @@ export function useCajaAPI() {
     })
   }
 
-  // 🗑️ Eliminar movimiento
+  // Eliminar movimiento
   const eliminarMovimiento = async (id) => {
     return await fetchAPI(`${API_BASE_URL}/${id}`, {
       method: 'DELETE'
     })
   }
 
-  // 👤 Obtener movimientos por empleado
+  // Obtener movimientos por empleado
   const obtenerMovimientosPorEmpleado = async (empleadoId) => {
     return await fetchAPI(`${API_BASE_URL}/empleado/${empleadoId}`)
   }
 
-  // 📊 Obtener resumen de pagos de una orden
+  // Obtener resumen de pagos de una orden
   const obtenerResumenPagosOrden = async (ordenId) => {
     return await fetchAPI(`${API_BASE_URL}/orden/${ordenId}/resumen`)
   }
 
-  // 📈 Obtener estadísticas de caja (función adicional)
+  // Obtener estadísticas de caja (función adicional)
   const obtenerEstadisticasCaja = async (fechaInicio, fechaFin) => {
     const params = new URLSearchParams({
       fecha_inicio: fechaInicio,
@@ -102,7 +102,7 @@ export function useCajaAPI() {
     return await fetchAPI(`${API_BASE_URL}/estadisticas?${params}`)
   }
 
-  // 💰 Obtener balance actual de caja
+  // Obtener balance actual de caja
   const obtenerBalanceActual = async () => {
     try {
       const movimientosHoy = await obtenerMovimientosHoy()
@@ -125,7 +125,7 @@ export function useCajaAPI() {
     }
   }
 
-  // 🔍 Buscar movimientos con filtros
+  // Buscar movimientos con filtros
   const buscarMovimientos = async (filtros = {}) => {
     const params = new URLSearchParams()
     
@@ -138,7 +138,7 @@ export function useCajaAPI() {
     return await fetchAPI(`${API_BASE_URL}/buscar?${params}`)
   }
 
-  // 📤 Exportar movimientos (si implementas esta funcionalidad)
+  // Exportar movimientos (si implementas esta funcionalidad)
   const exportarMovimientos = async (formato = 'excel', filtros = {}) => {
     const params = new URLSearchParams({
       formato,
@@ -168,7 +168,7 @@ export function useCajaAPI() {
     }
   }
 
-  // 🔄 Recalcular estado de pago de una orden
+  // Recalcular estado de pago de una orden
   const recalcularEstadoPagoOrden = async (ordenId) => {
     return await fetchAPI(`${API_BASE_URL}/orden/${ordenId}/recalcular`, {
       method: 'POST'
@@ -204,7 +204,7 @@ export function useCajaAPI() {
   }
 }
 
-// 🛠️ Composable adicional para empleados (si necesitas)
+// Composable adicional para empleados (si necesitas)
 export function useEmpleadosAPI() {
   const obtenerEmpleados = async () => {
     try {
@@ -225,7 +225,7 @@ export function useEmpleadosAPI() {
   }
 }
 
-// 💳 Composable adicional para tipos de pago (si necesitas)
+// Composable adicional para tipos de pago (si necesitas)
 export function useTiposPagoAPI() {
   const obtenerTiposPago = async () => {
     try {

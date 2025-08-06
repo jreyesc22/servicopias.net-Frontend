@@ -1,7 +1,7 @@
 <template>
   <v-card class="pa-4" elevation="2">
     <v-card-title class="headline">🧾 Resumen de la Orden</v-card-title>
-     
+
     <v-card-text>
       <v-row>
         <v-col cols="12" sm="6" md="4">
@@ -40,7 +40,12 @@
     </v-card-text>
 
     <v-card-actions class="justify-end">
-      <v-btn color="green darken-1" variant="elevated" @click="$emit('confirmar')">
+      <v-btn
+        :disabled="botonDeshabilitado"
+        color="green darken-1"
+        variant="elevated"
+        @click="confirmarConRetraso"
+      >
         ✅ Confirmar
       </v-btn>
       <v-btn color="red darken-1" variant="outlined" @click="$emit('cancelar')">
@@ -58,10 +63,27 @@ export default {
       required: true
     }
   },
+  data() {
+    return {
+      botonDeshabilitado: false
+    };
+  },
   computed: {
     total() {
-      return this.orden.items.reduce((acc, item) => acc + item.subtotal, 0)
+      return this.orden.items.reduce((acc, item) => acc + item.subtotal, 0);
+    }
+  },
+  methods: {
+    confirmarConRetraso() {
+      if (this.botonDeshabilitado) return;
+
+      this.botonDeshabilitado = true;
+      this.$emit('confirmar');
+
+      setTimeout(() => {
+        this.botonDeshabilitado = false;
+      }, 2000); // 2 segundos de espera
     }
   }
-}
+};
 </script>

@@ -1,4 +1,4 @@
 <template>
-  estammos trabajando en este apartado
+  <HelloWorld />
 </template>
 

@@ -1,3 +1,4 @@
+const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
@@ -10,5 +11,13 @@ module.exports = {
       });
       return definitions;
     });
-  }
-}
+  },
+
+  configureWebpack: {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
+  },
+};

@@ -9,7 +9,7 @@
       <FormCliente
         v-if="pasoActual === 1"
         :cliente="orden"
-       @continuar="continuarPaso2"
+        @continuar="continuarPaso2"
       />
 
       <!-- Paso 2: Productos (layout horizontal mejorado) -->
@@ -43,7 +43,7 @@
                   Q {{ item.subtotal.toFixed(2) }}
                 </template>
                 <template #item.accion="{ index }">
-                  <v-btn icon color="error" @click="quitarItem(index)">
+                  <v-btn icon color="error" @click="quitarItem(index)" size="small">
                     <v-icon>mdi-delete</v-icon>
                   </v-btn>
                 </template>
@@ -57,8 +57,17 @@
             <strong>Total: Q {{ totalOrden.toFixed(2) }}</strong>
           </v-col>
           <v-col cols="12" md="6" class="acciones">
-            <v-btn color="grey" @click="pasoActual = 1">Regresar</v-btn>
-            <v-btn color="primary" :disabled="orden.items.length === 0" @click="continuarPaso3">
+            <v-btn color="grey" @click="pasoActual = 1" variant="outlined">
+              <v-icon start>mdi-arrow-left</v-icon>
+              Regresar
+            </v-btn>
+            <v-btn 
+              color="primary" 
+              :disabled="orden.items.length === 0" 
+              @click="continuarPaso3"
+              :loading="loading"
+            >
+              <v-icon start>mdi-arrow-right</v-icon>
               Siguiente
             </v-btn>
           </v-col>
@@ -69,41 +78,259 @@
       <div v-if="pasoActual === 3">
         <ResumenOrden
           :orden="orden"
+          :loading="loading"
           @confirmar="guardarOrden"
           @cancelar="pasoActual = 2"
         />
       </div>
 
-      <!-- Paso 4: Confirmación -->
-      <div v-if="pasoActual === 4" class="text-center">
-        <p>La orden fue registrada exitosamente.</p>
-        <v-btn color="primary" @click="pasoActual = 5">Ir a Caja</v-btn>
+      <!-- Paso 4 - Confirmación con navegación a caja -->
+      <div v-if="pasoActual === 4" class="text-center pa-6">
+        <v-icon size="64" color="success" class="mb-4">mdi-check-circle</v-icon>
+        <h2 class="text-h5 mb-2">¡Orden Registrada Exitosamente!</h2>
+        <p class="text-body-1 mb-4">Orden #{{ ordenGuardada?.id }}</p>
+        
+        <!-- Resumen de la orden creada -->
+        <v-card variant="outlined" class="ma-4 pa-4" max-width="400" style="margin: 0 auto;">
+          <div class="d-flex justify-space-between mb-2">
+            <span>Cliente:</span>
+            <span class="font-weight-medium">{{ ordenGuardada?.cliente_nombre }}</span>
+          </div>
+          <div class="d-flex justify-space-between mb-2">
+            <span>Total:</span>
+            <span class="font-weight-bold text-h6">Q {{ ordenGuardada?.total?.toFixed(2) }}</span>
+          </div>
+          <div class="d-flex justify-space-between">
+            <span>Estado:</span>
+            <v-chip color="warning" size="small">{{ ordenGuardada?.estado_pago || 'Pendiente' }}</v-chip>
+          </div>
+        </v-card>
+
+        <div class="d-flex gap-3 justify-center mt-6">
+          <v-btn 
+            color="grey" 
+            variant="outlined" 
+            @click="iniciarNuevaOrden"
+          >
+            <v-icon start>mdi-plus</v-icon>
+            Nueva Orden
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            size="large"
+            @click="pasoActual = 5"
+          >
+            <v-icon start>mdi-cash-register</v-icon>
+            Procesar Pago
+          </v-btn>
+        </div>
       </div>
 
-      <!-- Paso 5: Caja + Ticket -->
+      <!-- Paso 5 - Caja de Pago -->
       <div v-if="pasoActual === 5">
+        <!-- Validación: Solo mostrar si hay orden guardada -->
+        <div v-if="!ordenGuardada" class="text-center pa-6">
+          <v-alert type="warning" variant="tonal">
+            No hay una orden válida para procesar el pago.
+          </v-alert>
+          <v-btn color="primary" @click="pasoActual = 1" class="mt-4">
+            Crear Nueva Orden
+          </v-btn>
+        </div>
+
+        <!-- Componente CajaPago con eventos corregidos -->
         <CajaPago
-          :orden="ordenGuardada"
-          :efectivoId="1"
-          :usuario="{ id: 1 }"
-          @pagoCompletado="finalizarFlujo"
-          @cobroRealizado="refrescarCaja"
+          v-else
+          :orden="ordenParaCaja"
+          :usuario="usuarioActual"
+          @cobro-realizado="manejarCobroRealizado"
+          @pago-completado="manejarPagoCompletado"
+          @cancelar="pasoActual = 4"
+          @regresar-paso="cambiarPaso"
         />
+
+        <!-- Información de estado de pago -->
+        <v-card 
+          v-if="ordenGuardada && ordenGuardada.estado_pago !== 'pendiente'" 
+          variant="tonal" 
+          color="info" 
+          class="mt-4 pa-4"
+        >
+          <v-card-title class="text-subtitle-1">
+            <v-icon start>mdi-information</v-icon>
+            Estado de Pago Actual
+          </v-card-title>
+          <div class="d-flex justify-space-between align-center">
+            <span>Abonado:</span>
+            <span class="font-weight-bold">Q {{ (ordenGuardada.abonado || 0).toFixed(2) }}</span>
+          </div>
+          <div class="d-flex justify-space-between align-center">
+            <span>Saldo Pendiente:</span>
+            <span class="font-weight-bold">Q {{ (ordenGuardada.saldo_pendiente || 0).toFixed(2) }}</span>
+          </div>
+        </v-card>
+
+        <!-- Opciones adicionales -->
+        <div class="d-flex gap-3 justify-center mt-4">
+          <v-btn 
+            color="grey" 
+            variant="outlined" 
+            @click="pasoActual = 4"
+          >
+            <v-icon start>mdi-arrow-left</v-icon>
+            Volver
+          </v-btn>
+          
+          <!-- Opción para ir directo a ticket si está pagado -->
+          <v-btn 
+            v-if="ordenGuardada?.estado_pago === 'pagado'" 
+            color="success" 
+            @click="pasoActual = 6"
+          >
+            <v-icon start>mdi-printer</v-icon>
+            Imprimir Ticket
+          </v-btn>
+        </div>
+      </div>
+
+      <!-- Paso 6 - Ticket (separado de caja) -->
+      <div v-if="pasoActual === 6" class="text-center pa-6">
+        <v-icon size="64" color="success" class="mb-4">mdi-check-circle-outline</v-icon>
+        <h2 class="text-h5 mb-4">¡Pago Completado!</h2>
+
+        <!-- Información del pago -->
+        <v-card v-if="pago" variant="outlined" class="ma-4 pa-4" max-width="400" style="margin: 0 auto;">
+          <v-card-title class="text-subtitle-1">Detalles del Pago</v-card-title>
+          <div class="d-flex justify-space-between mb-2">
+            <span>Método:</span>
+            <span class="font-weight-medium">{{ pago.metodo }}</span>
+          </div>
+          <div class="d-flex justify-space-between mb-2">
+            <span>Monto:</span>
+            <span class="font-weight-bold">Q {{ pago.monto?.toFixed(2) }}</span>
+          </div>
+          <div v-if="pago.vuelto > 0" class="d-flex justify-space-between mb-2">
+            <span>Vuelto:</span>
+            <span class="font-weight-bold text-success">Q {{ pago.vuelto?.toFixed(2) }}</span>
+          </div>
+          <div v-if="pago.numero_recibo" class="d-flex justify-space-between">
+            <span>No. Recibo:</span>
+            <span class="font-weight-medium">{{ pago.numero_recibo }}</span>
+          </div>
+        </v-card>
+
+        <!-- Ticket Printer -->
         <TicketPrinter
           v-if="ordenGuardada && pago"
           ref="ticketPrinter"
           :orden="ordenGuardada"
           :pago="pago"
+          @impresion-exitosa="manejarImpresionExitosa"
+          @impresion-error="manejarImpresionError"
+          @whatsapp-enviado="manejarWhatsAppEnviado"
+          @whatsapp-error="manejarWhatsAppError"
         />
+
+        <!-- Acciones finales -->
+        <div class="d-flex gap-3 justify-center mt-6">
+          <v-btn 
+            color="primary" 
+            @click="intentarReimprimir"
+            :loading="estadoImpresion.imprimiendo"
+            :disabled="!$refs.ticketPrinter"
+          >
+            <v-icon start>mdi-printer</v-icon>
+            {{ estadoImpresion.imprimiendo ? 'Imprimiendo...' : 'Reimprimir Ticket' }}
+          </v-btn>
+          <v-btn 
+            color="success" 
+            variant="flat"
+            @click="iniciarNuevaOrden"
+          >
+            <v-icon start>mdi-plus</v-icon>
+            Nueva Orden
+          </v-btn>
+        </div>
+
+        <!-- Alerta de estado de impresión -->
+        <v-alert
+          v-if="estadoImpresion.mostrarAlerta"
+          :type="estadoImpresion.tipoAlerta"
+          variant="tonal"
+          class="mt-4"
+          closable
+          @click:close="estadoImpresion.mostrarAlerta = false"
+        >
+          <v-alert-title>
+            <v-icon start>{{ estadoImpresion.iconoAlerta }}</v-icon>
+            {{ estadoImpresion.tituloAlerta }}
+          </v-alert-title>
+          <div>{{ estadoImpresion.mensajeAlerta }}</div>
+          
+          <!-- Acciones adicionales para errores de conexión -->
+          <template v-if="estadoImpresion.tipoAlerta === 'warning'" #append>
+            <v-btn
+              variant="outlined"
+              size="small"
+              color="warning"
+              @click="intentarReimprimir"
+              :loading="estadoImpresion.imprimiendo"
+            >
+              Reintentar
+            </v-btn>
+          </template>
+        </v-alert>
       </div>
+
     </v-card>
+
+    <!-- Sistema de notificaciones -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      timeout="4000"
+      location="top"
+      elevation="6"
+    >
+      <div class="d-flex align-center">
+        <v-icon 
+          :icon="snackbar.color === 'error' ? 'mdi-alert-circle' : 'mdi-check-circle'"
+          class="me-2"
+        />
+        {{ snackbar.text }}
+      </div>
+      <template #actions>
+        <v-btn 
+          variant="text" 
+          icon="mdi-close"
+          size="small"
+          @click="snackbar.show = false"
+        />
+      </template>
+    </v-snackbar>
+
+    <!-- Loading overlay global -->
+    <v-overlay 
+      v-model="loading" 
+      class="align-center justify-center"
+      persistent
+    >
+      <v-progress-circular
+        color="primary"
+        indeterminate
+        size="64"
+      />
+      <div class="text-center mt-4">
+        <div class="text-h6">Procesando...</div>
+        <div class="text-body-2">Por favor espere</div>
+      </div>
+    </v-overlay>
   </v-container>
 </template>
 
 <script>
 import FormCliente from './FormCliente.vue'
 import SelectorProductos from './SelectorProductos.vue'
-import TablaResumenProductos from './TablaResumenProductos.vue'
 import ResumenOrden from './ResumenOrden.vue'
 import CajaPago from '../caja/CajaPago.vue'
 import TicketPrinter from '../TicketPrinter.vue'
@@ -113,7 +340,6 @@ export default {
   components: {
     FormCliente,
     SelectorProductos,
-    TablaResumenProductos,
     ResumenOrden,
     CajaPago,
     TicketPrinter,
@@ -129,15 +355,54 @@ export default {
         cliente_telefono: '',
         estado: 'pendiente',
         total: 0,
-        items: []
+        items: [],
+        // Campos sincronizados con CajaPago
+        abonado: 0,
+        saldo_pendiente: 0,
+        estado_pago: 'pendiente',
+        fecha_pago_completo: null,
+        tipoPago: {
+          id: 1,
+          nombre: 'Efectivo'
+        }
       },
       ordenGuardada: null,
-      loading: false
+      loading: false,
+      // Información del usuario actual
+      usuarioActual: {
+        id: 1, // ⚠️ IMPORTANTE: Reemplaza con el ID real del usuario logueado
+        nombre: 'Usuario Sistema' // ⚠️ IMPORTANTE: Reemplaza con el nombre real
+      },
+      // Control de notificaciones
+      snackbar: {
+        show: false,
+        text: '',
+        color: 'success'
+      },
+      // Estado de impresión
+      estadoImpresion: {
+        imprimiendo: false,
+        mostrarAlerta: false,
+        tipoAlerta: 'info',
+        tituloAlerta: '',
+        mensajeAlerta: '',
+        iconoAlerta: 'mdi-information'
+      }
     }
   },
   computed: {
     totalOrden() {
       return this.orden.items.reduce((sum, i) => sum + i.subtotal, 0)
+    },
+    // Orden preparada para CajaPago con campos sincronizados
+    ordenParaCaja() {
+      return {
+        ...this.ordenGuardada,
+        tipoPago: this.ordenGuardada?.tipoPago || { id: 1, nombre: 'Efectivo' },
+        abonado: this.ordenGuardada?.abonado || 0,
+        saldo_pendiente: this.ordenGuardada?.saldo_pendiente || this.ordenGuardada?.total || 0,
+        estado_pago: this.ordenGuardada?.estado_pago || 'pendiente'
+      }
     }
   },
   methods: {
@@ -160,15 +425,17 @@ export default {
     quitarItem(index) {
       this.orden.items.splice(index, 1)
     },
+    
+    // Guardar orden con campos de pago sincronizados
     async guardarOrden() {
       if (!this.orden.items.length) {
-        alert('Debe agregar al menos un producto.')
+        this.mostrarNotificacion('Debe agregar al menos un producto.', 'error')
         return
       }
 
       this.loading = true
       try {
-        this.orden.total = this.totalOrden  // sincroniza el total antes de guardar
+        this.orden.total = this.totalOrden
 
         const payload = {
           cliente_nombre: this.orden.cliente_nombre || 'Consumidor Final',
@@ -176,6 +443,10 @@ export default {
           cliente_telefono: this.orden.cliente_telefono || 'N/A',
           estado: 'pendiente',
           total: this.orden.total,
+          // Campos de estado de pago sincronizados
+          abonado: 0,
+          saldo_pendiente: this.orden.total,
+          estado_pago: 'pendiente',
           items: this.orden.items.map(i => ({
             itemId: i.itemId,
             cantidad: i.cantidad,
@@ -194,30 +465,207 @@ export default {
         if (!res.ok) throw new Error(texto)
 
         const resData = JSON.parse(texto)
+        
+        // Guardar orden con todos los campos necesarios sincronizados
         this.ordenGuardada = {
           ...this.orden,
-          id: resData.orden.id
+          id: resData.orden.id,
+          abonado: resData.orden.abonado || 0,
+          saldo_pendiente: resData.orden.saldo_pendiente || resData.orden.total,
+          estado_pago: resData.orden.estado_pago || 'pendiente',
+          tipoPago: { id: 1, nombre: 'Efectivo' }
         }
 
+        this.mostrarNotificacion('Orden guardada exitosamente', 'success')
         this.pasoActual = 4
+
       } catch (err) {
         console.error('Error al guardar la orden:', err)
-        alert('Hubo un error al guardar la orden.')
+        this.mostrarNotificacion('Hubo un error al guardar la orden.', 'error')
       } finally {
         this.loading = false
       }
     },
-    finalizarFlujo(pago) {
-      this.pago = pago
-      this.$nextTick(() => {
-        this.$refs.ticketPrinter.imprimir()
-        setTimeout(() => this.iniciarNuevaOrden(), 1000)
-      })
-      this.pasoActual = 5
+
+    // Manejar cobro realizado con estructura correcta
+    manejarCobroRealizado(data) {
+      console.log('Cobro realizado:', data)
+      
+      const { movimiento, ordenActualizada, tipo } = data
+      
+      // Actualizar la orden guardada con los nuevos valores
+      if (movimiento) {
+        this.actualizarOrdenLocal(movimiento)
+      }
+      
+      // Si necesitas recargar desde el servidor
+      if (ordenActualizada) {
+        this.recargarOrdenDesdeServidor()
+      }
+      
+      // Mostrar notificación
+      const mensaje = tipo === 'pago_total' 
+        ? 'Pago completado exitosamente' 
+        : 'Abono registrado exitosamente'
+      this.mostrarNotificacion(mensaje, 'success')
     },
-    refrescarCaja() {
-      console.log("Caja actualizada")
+
+    // Manejar pago completado con estructura correcta
+    manejarPagoCompletado(data) {
+      console.log('Pago completado:', data)
+      
+      const { 
+        monto_pagado, 
+        forma_pago, 
+        vuelto, 
+        numero_recibo, 
+        es_pago_total,
+        saldo_restante,
+        fecha 
+      } = data
+      
+      // Guardar información del pago para el ticket
+      this.pago = {
+        monto: monto_pagado,
+        metodo: forma_pago,
+        vuelto: vuelto,
+        numero_recibo: numero_recibo,
+        fecha: fecha
+      }
+      
+      // Si es pago total, ir directo a imprimir ticket
+      if (es_pago_total) {
+        this.pasoActual = 6
+      }
     },
+
+    // Actualizar orden local después de un pago
+    actualizarOrdenLocal(movimiento) {
+      if (!movimiento || !this.ordenGuardada) return
+      
+      // Sumar el nuevo abono al total abonado
+      this.ordenGuardada.abonado = (this.ordenGuardada.abonado || 0) + parseFloat(movimiento.monto)
+      
+      // Recalcular saldo pendiente
+      this.ordenGuardada.saldo_pendiente = Math.max(0, this.ordenGuardada.total - this.ordenGuardada.abonado)
+      
+      // Actualizar estado de pago
+      if (this.ordenGuardada.abonado >= this.ordenGuardada.total) {
+        this.ordenGuardada.estado_pago = 'pagado'
+        this.ordenGuardada.fecha_pago_completo = new Date().toISOString()
+      } else if (this.ordenGuardada.abonado > 0) {
+        this.ordenGuardada.estado_pago = 'parcial'
+      } else {
+        this.ordenGuardada.estado_pago = 'pendiente'
+      }
+    },
+
+    // Recargar orden desde servidor (opcional)
+    async recargarOrdenDesdeServidor() {
+      if (!this.ordenGuardada?.id) return
+      
+      try {
+        const res = await fetch(`${process.env.VUE_APP_API_URL}/ordenes/${this.ordenGuardada.id}`)
+        if (res.ok) {
+          const ordenActualizada = await res.json()
+          this.ordenGuardada = {
+            ...this.ordenGuardada,
+            abonado: ordenActualizada.abonado || 0,
+            saldo_pendiente: ordenActualizada.saldo_pendiente || 0,
+            estado_pago: ordenActualizada.estado_pago || 'pendiente'
+          }
+        }
+      } catch (error) {
+        console.error('Error al recargar orden:', error)
+      }
+    },
+
+    // Cambiar paso (para manejar navegación desde CajaPago)
+    cambiarPaso(nuevoPaso) {
+      this.pasoActual = nuevoPaso
+    },
+
+    // Manejar eventos del TicketPrinter
+    manejarImpresionExitosa(data) {
+      console.log('Impresión exitosa:', data);
+      this.estadoImpresion = {
+        imprimiendo: false,
+        mostrarAlerta: true,
+        tipoAlerta: 'success',
+        tituloAlerta: 'Impresión Exitosa',
+        mensajeAlerta: `Ticket impreso correctamente para la orden #${data.orden_id}`,
+        iconoAlerta: 'mdi-check-circle'
+      };
+      this.mostrarNotificacion('Ticket impreso con éxito', 'success');
+    },
+
+    manejarImpresionError(data) {
+      console.error('Error de impresión:', data);
+      
+      // Clasificar tipo de error
+      let tipoAlerta = 'error';
+      let tituloAlerta = 'Error de Impresión';
+      let mensajeAlerta = data.error;
+      
+      if (data.error.includes('Servidor de impresión no disponible')) {
+        tipoAlerta = 'warning';
+        tituloAlerta = 'Impresora No Disponible';
+        mensajeAlerta = 'No se puede conectar con la impresora. Verifique que esté encendida y conectada a la red.';
+      } else if (data.error.includes('Error del servidor')) {
+        tituloAlerta = 'Error del Servidor de Impresión';
+        mensajeAlerta = 'El servidor de impresión respondió con un error. Intente nuevamente.';
+      }
+      
+      this.estadoImpresion = {
+        imprimiendo: false,
+        mostrarAlerta: true,
+        tipoAlerta: tipoAlerta,
+        tituloAlerta: tituloAlerta,
+        mensajeAlerta: mensajeAlerta,
+        iconoAlerta: tipoAlerta === 'warning' ? 'mdi-printer-alert' : 'mdi-alert-circle'
+      };
+      
+      this.mostrarNotificacion('Error al imprimir ticket', 'error');
+    },
+
+    manejarWhatsAppEnviado(data) {
+      console.log('WhatsApp enviado:', data);
+      this.mostrarNotificacion(`WhatsApp enviado a ${data.telefono}`, 'info');
+    },
+
+    manejarWhatsAppError(data) {
+      console.warn('Error WhatsApp:', data);
+      this.mostrarNotificacion(`Error al enviar WhatsApp: ${data.error}`, 'warning');
+    },
+
+    // Método mejorado para reimprimir con manejo de estados
+    async intentarReimprimir() {
+      if (!this.$refs.ticketPrinter) {
+        this.mostrarNotificacion('Error: Componente de impresión no disponible', 'error');
+        return;
+      }
+
+      this.estadoImpresion.imprimiendo = true;
+      this.estadoImpresion.mostrarAlerta = false;
+
+      try {
+        await this.$refs.ticketPrinter.imprimir();
+      } catch (error) {
+        // El error ya es manejado por los eventos, solo limpiamos el estado
+        console.error('Error en reimprimir:', error);
+      }
+    },
+
+    // Sistema de notificaciones
+    mostrarNotificacion(texto, color = 'success') {
+      this.snackbar = {
+        show: true,
+        text: texto,
+        color: color
+      }
+    },
+
+    // Limpiar datos al iniciar nueva orden
     iniciarNuevaOrden() {
       this.orden = {
         cliente_nombre: '',
@@ -225,15 +673,44 @@ export default {
         cliente_telefono: '',
         estado: 'pendiente',
         total: 0,
-        items: []
+        items: [],
+        abonado: 0,
+        saldo_pendiente: 0,
+        estado_pago: 'pendiente',
+        fecha_pago_completo: null,
+        tipoPago: {
+          id: 1,
+          nombre: 'Efectivo'
+        }
       }
       this.ordenGuardada = null
       this.pago = null
       this.pasoActual = 1
+      
+      // Limpiar estado de impresión
+      this.estadoImpresion = {
+        imprimiendo: false,
+        mostrarAlerta: false,
+        tipoAlerta: 'info',
+        tituloAlerta: '',
+        mensajeAlerta: '',
+        iconoAlerta: 'mdi-information'
+      }
     }
+  },
+
+  // Inicializar usuario al montar componente
+  async mounted() {
+    // Aquí deberías obtener la información del usuario logueado
+    // Ejemplo:
+    // const usuario = await this.obtenerUsuarioActual()
+    // this.usuarioActual = usuario
+    
+    console.log('Componente montado con usuario:', this.usuarioActual)
   }
 }
 </script>
+
 <style scoped>
 .form-orden {
   max-width: 1200px;

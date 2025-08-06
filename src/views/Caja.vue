@@ -177,7 +177,30 @@
           }"
         />
       </v-card-text>
+      
     </v-card>
+
+    <!-- Registro de ingreso -->
+    <v-card class="mb-8 ingreso-card" elevation="2">
+  <v-card-title class="pa-6 bg-green-darken-3 text-white d-flex align-center">
+    <v-icon class="me-3" size="28">mdi-cash-plus</v-icon>
+    <span class="text-h6 font-weight-medium">Registro Rápido de Ingreso</span>
+  </v-card-title>
+
+  <v-card-text class="pa-6">
+    <RegistrarIngreso
+      :tipos-pago="tiposPago"
+      :empleados="empleados"
+      :loading="cargando"
+      @ingreso-creado="(ingreso) => {
+        mostrarNotificacion('✅ Ingreso registrado exitosamente', 'success')
+        refrescarDatos()
+      }"
+    />
+  </v-card-text>
+</v-card>
+
+
 
     <!-- Panel de controles y Filtros -->
     <v-card class="control-panel mb-8" elevation="2">
@@ -285,6 +308,7 @@ import { ref, onMounted, computed } from 'vue'
 import MovimientosList from '../components/caja/MovimientosList.vue'
 import { useCajaAPI } from '../components/composables/useCajaAPI.js'
 import RegistrarEgreso from '../components/caja/RegistrarEgreso.vue'
+import MovimientoModal from '../components/caja/RegistrarIngresoE.vue'
 
 const movimientos = ref([])
 const resumenDia = ref(null)
