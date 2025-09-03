@@ -1,7 +1,7 @@
 <template>
   <v-container :class="['form-orden', { 'form-expandida': pasoActual === 2 }]" fluid>
     <v-card elevation="2" class="pa-4">
-      <v-card-title class="text-h6">🧾 Nueva Orden</v-card-title>
+      <v-card-title class="text-h6">Proceso de Nueva Orden</v-card-title>
 
       <BarraEstado :pasoActual="pasoActual" />
 
@@ -21,7 +21,7 @@
 
           <v-col cols="12" md="6" class="pa-2">
             <v-card class="pa-4" elevation="1" height="100%">
-              <h3 class="text-subtitle-1 font-weight-medium mb-2">🛒 Productos agregados</h3>
+              <h3 class="text-subtitle-1 font-weight-medium mb-2">Productos agregados</h3>
 
               <v-data-table
                 :headers="[
@@ -90,41 +90,57 @@
         <h2 class="text-h5 mb-2">¡Orden Registrada Exitosamente!</h2>
         <p class="text-body-1 mb-4">Orden #{{ ordenGuardada?.id }}</p>
         
+
+
+
         <!-- Resumen de la orden creada -->
-        <v-card variant="outlined" class="ma-4 pa-4" max-width="400" style="margin: 0 auto;">
-          <div class="d-flex justify-space-between mb-2">
-            <span>Cliente:</span>
-            <span class="font-weight-medium">{{ ordenGuardada?.cliente_nombre }}</span>
-          </div>
-          <div class="d-flex justify-space-between mb-2">
-            <span>Total:</span>
-            <span class="font-weight-bold text-h6">Q {{ ordenGuardada?.total?.toFixed(2) }}</span>
-          </div>
-          <div class="d-flex justify-space-between">
-            <span>Estado:</span>
-            <v-chip color="warning" size="small">{{ ordenGuardada?.estado_pago || 'Pendiente' }}</v-chip>
+        <v-card variant="text" class="mx-auto my-2 pa-2" max-width="320" style="border: 1px solid #eee; border-radius: 10px;">
+          <div class="d-flex flex-column align-start" style="gap: 2px;">
+            <div class="text-caption text-grey-darken-1">Cliente</div>
+            <div class="text-body-2 font-weight-medium mb-1">{{ ordenGuardada?.cliente_nombre }}</div>
+            <div class="d-flex justify-space-between w-100">
+              <span class="text-caption text-grey-darken-1">Total</span>
+              <span class="font-weight-bold">Q {{ ordenGuardada?.total?.toFixed(2) }}</span>
+            </div>
+            <div class="d-flex justify-space-between w-100 mt-1">
+              <span class="text-caption text-grey-darken-1">Estado</span>
+              <v-chip color="warning" size="x-small" class="ml-1" style="height: 20px;">{{ ordenGuardada?.estado_pago || 'Pendiente' }}</v-chip>
+            </div>
           </div>
         </v-card>
+
+
+
+        
+      <!-- BOTONES DEL PASO REGISTRO ORDEN CON EXITO -->
 
         <div class="d-flex gap-3 justify-center mt-6">
           <v-btn 
             color="grey" 
             variant="outlined" 
+            size="large"
+            class="px-8 py-4 text-body-1 font-weight-bold"
+            style="min-width: 200px;"
             @click="iniciarNuevaOrden"
           >
-            <v-icon start>mdi-plus</v-icon>
-            Nueva Orden
+            <v-icon start size="large">mdi-plus</v-icon>
+            NUEVA ORDEN
           </v-btn>
+
           <v-btn 
             color="primary" 
+            variant="flat"
             size="large"
+            class="px-8 py-4 text-body-1 font-weight-bold"
+            style="min-width: 200px;"
             @click="pasoActual = 5"
           >
-            <v-icon start>mdi-cash-register</v-icon>
-            Procesar Pago
+            <v-icon start size="large">mdi-cash-register</v-icon>
+            PROCESAR PAGO
           </v-btn>
         </div>
       </div>
+
 
       <!-- Paso 5 - Caja de Pago -->
       <div v-if="pasoActual === 5">
@@ -138,7 +154,7 @@
           </v-btn>
         </div>
 
-        <!-- Componente CajaPago con eventos corregidos -->
+        <!-- Componente CajaPago con eventos-->
         <CajaPago
           v-else
           :orden="ordenParaCaja"

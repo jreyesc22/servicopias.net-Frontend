@@ -33,16 +33,7 @@
       :expand-on-hover="isTablet"
     >
       <!-- Header del drawer -->
-      <v-list-item class="px-2 py-4">
-        <v-list-item-avatar>
-          <v-icon size="32" color="white">mdi-printer</v-icon>
-        </v-list-item-avatar>
-        <v-list-item-content>
-          <v-list-item-title class="text-white font-weight-medium">
-            Centro de Impresiones
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
+ 
 
       <v-divider class="mx-4" style="border-color: rgba(255,255,255,0.2);" />
 
@@ -129,7 +120,7 @@ export default {
       menuItems: [
         { 
           id: 'dashboard', 
-          title: 'Dashboard', 
+          title: 'Inicio', 
           icon: 'mdi-view-dashboard', 
           route: '/Dashboard',
           color: 'primary'
@@ -150,7 +141,7 @@ export default {
         },
         { 
           id: 'taller', 
-          title: 'Taller', 
+          title: 'Taller de Impresión', 
           icon: 'mdi-wrench', 
           route: '/Taller',
           color: 'warning'

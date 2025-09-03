@@ -1,6 +1,6 @@
 <template>
   <v-card class="pa-4" elevation="2">
-    <v-card-title class="headline">🧾 Resumen de la Orden</v-card-title>
+    <v-card-title class="headline">Resumen de la Orden</v-card-title>
 
     <v-card-text>
       <v-row>
@@ -46,10 +46,10 @@
         variant="elevated"
         @click="confirmarConRetraso"
       >
-        ✅ Confirmar
+        Confirmar
       </v-btn>
       <v-btn color="red darken-1" variant="outlined" @click="$emit('cancelar')">
-        ❌ Cancelar
+        Cancelar
       </v-btn>
     </v-card-actions>
   </v-card>

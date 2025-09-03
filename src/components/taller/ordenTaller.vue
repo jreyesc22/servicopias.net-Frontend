@@ -7,10 +7,10 @@
           <div class="title-section">
             <h2 class="text-h5 font-weight-bold mb-1">
               <v-icon class="mr-2" color="primary">mdi-wrench</v-icon>
-              Órdenes en Taller
+              Gestion de Producción
             </h2>
             <p class="text-subtitle-2 text-medium-emphasis mb-0">
-              Gestión de órdenes de producción
+              Órdenes en Proceso de Preparación
             </p>
           </div>
           
@@ -544,7 +544,7 @@ export default {
 }
 
 .header-card {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #6fb4f8 0%, #d7e5f5 100%);
   color: white;
 }
 

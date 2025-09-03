@@ -50,9 +50,10 @@
           type="number"
           min="1"
           :max="item.tipo === 'servicio' ? null : item.stock"
-          dense
           hide-details
-          style="width: 60px"
+          class="campo-cantidad"
+          style="width: 90px; font-size: 1.2rem; text-align: center;"
+          input-class="text-center font-weight-bold"
         />
       </template>
 
@@ -110,7 +111,8 @@ export default {
         const coincideTexto =
           !this.busqueda ||
           i.nombre.toLowerCase().includes(texto) ||
-          i.tipo.toLowerCase().includes(texto)
+          i.tipo.toLowerCase().includes(texto) ||
+          (i.codigo_barras && i.codigo_barras.toLowerCase().includes(texto))
 
         const coincideCategoria =
           !this.categoriaSeleccionada ||
@@ -181,5 +183,12 @@ export default {
 .flex-grow-1 {
   flex: 1 1 300px;
   min-width: 200px;
+}
+
+.campo-cantidad input {
+  font-size: 1.2rem !important;
+  font-weight: bold;
+  text-align: center;
+  padding: 4px 0;
 }
 </style>

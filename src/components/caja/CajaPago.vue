@@ -167,24 +167,6 @@
                   {{ textoBoton }}
                 </v-btn>
               </v-col>
-              <v-col cols="6" sm="3">
-                <v-btn
-                  variant="outlined"
-                  block
-                  @click="regresar"
-                >
-                  <v-icon size="small">mdi-arrow-left</v-icon>
-                </v-btn>
-              </v-col>
-              <v-col cols="6" sm="3">
-                <v-btn
-                  variant="text"
-                  block
-                  @click="cancelar"
-                >
-                  Cancelar
-                </v-btn>
-              </v-col>
             </v-row>
           </v-form>
         </v-col>
