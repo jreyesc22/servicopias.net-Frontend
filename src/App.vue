@@ -23,7 +23,7 @@ watch(
     isLoading.value = true
     setTimeout(() => {
       isLoading.value = false
-    }, 300) // Ajusta según la duración de tu transición
+    }, 200) // Ajusta según la duración de tu transición
   }
 )
 </script>

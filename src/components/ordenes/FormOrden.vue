@@ -214,28 +214,50 @@
         <v-icon size="64" color="success" class="mb-4">mdi-check-circle-outline</v-icon>
         <h2 class="text-h5 mb-4">¡Pago Completado!</h2>
 
-        <!-- Información del pago -->
-        <v-card v-if="pago" variant="outlined" class="ma-4 pa-4" max-width="400" style="margin: 0 auto;">
-          <v-card-title class="text-subtitle-1">Detalles del Pago</v-card-title>
-          <div class="d-flex justify-space-between mb-2">
-            <span>Método:</span>
-            <span class="font-weight-medium">{{ pago.metodo }}</span>
-          </div>
-          <div class="d-flex justify-space-between mb-2">
-            <span>Monto:</span>
-            <span class="font-weight-bold">Q {{ pago.monto?.toFixed(2) }}</span>
-          </div>
-          <div v-if="pago.vuelto > 0" class="d-flex justify-space-between mb-2">
-            <span>Vuelto:</span>
-            <span class="font-weight-bold text-success">Q {{ pago.vuelto?.toFixed(2) }}</span>
-          </div>
-          <div v-if="pago.numero_recibo" class="d-flex justify-space-between">
-            <span>No. Recibo:</span>
-            <span class="font-weight-medium">{{ pago.numero_recibo }}</span>
-          </div>
-        </v-card>
+        <!-- Información del pago - Centrado y mejor organizado -->
+        <div class="d-flex justify-center mb-6">
+          <v-card 
+            v-if="pago" 
+            variant="outlined" 
+            class="pa-4 pago-resumen-card" 
+            max-width="500"
+          >
+            <v-card-title class="text-subtitle-1 text-center pb-2">
+              <v-icon start>mdi-receipt</v-icon>
+              Detalles del Pago
+            </v-card-title>
+            
+            <div class="pago-detalles">
+              <div class="d-flex justify-space-between align-center mb-3">
+                <span class="text-body-2">Método:</span>
+                <v-chip 
+                  :color="pago.metodo === 'Efectivo' ? 'success' : 'primary'" 
+                  size="small" 
+                  variant="flat"
+                >
+                  {{ pago.metodo }}
+                </v-chip>
+              </div>
+              
+              <div class="d-flex justify-space-between align-center mb-3">
+                <span class="text-body-2">Monto:</span>
+                <span class="text-h6 font-weight-bold text-primary">Q {{ pago.monto?.toFixed(2) }}</span>
+              </div>
+              
+              <div v-if="pago.vuelto > 0" class="d-flex justify-space-between align-center mb-3">
+                <span class="text-body-2">Vuelto:</span>
+                <span class="text-body-1 font-weight-medium text-success">Q {{ pago.vuelto?.toFixed(2) }}</span>
+              </div>
+              
+              <div v-if="pago.numero_recibo" class="d-flex justify-space-between align-center">
+                <span class="text-body-2">No. Recibo:</span>
+                <span class="text-body-2 font-weight-medium">{{ pago.numero_recibo }}</span>
+              </div>
+            </div>
+          </v-card>
+        </div>
 
-        <!-- Ticket Printer -->
+        <!-- Ticket Printer (invisible) -->
         <TicketPrinter
           v-if="ordenGuardada && pago"
           ref="ticketPrinter"
@@ -243,32 +265,75 @@
           :pago="pago"
           @impresion-exitosa="manejarImpresionExitosa"
           @impresion-error="manejarImpresionError"
+        />
+
+        <!-- WhatsApp Sender (invisible) -->
+        <WhatsAppSender
+          v-if="ordenGuardada && pago && ordenGuardada.cliente_telefono && ordenGuardada.cliente_telefono !== 'N/A'"
+          ref="whatsappSender"
+          :orden="ordenGuardada"
+          :pago="pago"
+          button-text="Reenviar WhatsApp"
           @whatsapp-enviado="manejarWhatsAppEnviado"
           @whatsapp-error="manejarWhatsAppError"
         />
 
-        <!-- Acciones finales -->
-        <div class="d-flex gap-3 justify-center mt-6">
-          <v-btn 
-            color="primary" 
-            @click="intentarReimprimir"
-            :loading="estadoImpresion.imprimiendo"
-            :disabled="!$refs.ticketPrinter"
+        <!-- Acciones finales - Solo iconos con tooltips -->
+        <div class="d-flex justify-center gap-4 mt-6">
+          <!-- Reimprimir Ticket -->
+          <v-tooltip text="Reimprimir Ticket" location="top">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="primary"
+                fab
+                size="large"
+                @click="intentarReimprimir"
+                :loading="estadoImpresion.imprimiendo"
+                :disabled="!$refs.ticketPrinter"
+              >
+                <v-icon size="24">mdi-printer</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
+
+          <!-- Enviar WhatsApp -->
+          <v-tooltip 
+            :text="$refs.whatsappSender ? 'Reenviar WhatsApp' : 'WhatsApp no disponible'" 
+            location="top"
           >
-            <v-icon start>mdi-printer</v-icon>
-            {{ estadoImpresion.imprimiendo ? 'Imprimiendo...' : 'Reimprimir Ticket' }}
-          </v-btn>
-          <v-btn 
-            color="success" 
-            variant="flat"
-            @click="iniciarNuevaOrden"
-          >
-            <v-icon start>mdi-plus</v-icon>
-            Nueva Orden
-          </v-btn>
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="success"
+                fab
+                size="large"
+                @click="reenviarWhatsApp"
+                :loading="estadoWhatsApp.enviando"
+                :disabled="!$refs.whatsappSender"
+              >
+                <v-icon size="24">mdi-whatsapp</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
+
+          <!-- Nueva Orden -->
+          <v-tooltip text="Nueva Orden" location="top">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                color="info"
+                fab
+                size="large"
+                @click="iniciarNuevaOrden"
+              >
+                <v-icon size="24">mdi-plus</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
         </div>
 
-        <!-- Alerta de estado de impresión -->
+        <!-- Alertas -->
         <v-alert
           v-if="estadoImpresion.mostrarAlerta"
           :type="estadoImpresion.tipoAlerta"
@@ -282,19 +347,21 @@
             {{ estadoImpresion.tituloAlerta }}
           </v-alert-title>
           <div>{{ estadoImpresion.mensajeAlerta }}</div>
-          
-          <!-- Acciones adicionales para errores de conexión -->
-          <template v-if="estadoImpresion.tipoAlerta === 'warning'" #append>
-            <v-btn
-              variant="outlined"
-              size="small"
-              color="warning"
-              @click="intentarReimprimir"
-              :loading="estadoImpresion.imprimiendo"
-            >
-              Reintentar
-            </v-btn>
-          </template>
+        </v-alert>
+
+        <v-alert
+          v-if="estadoWhatsApp.mostrarAlerta"
+          :type="estadoWhatsApp.tipoAlerta"
+          variant="tonal"
+          class="mt-4"
+          closable
+          @click:close="estadoWhatsApp.mostrarAlerta = false"
+        >
+          <v-alert-title>
+            <v-icon start>{{ estadoWhatsApp.iconoAlerta }}</v-icon>
+            {{ estadoWhatsApp.tituloAlerta }}
+          </v-alert-title>
+          <div>{{ estadoWhatsApp.mensajeAlerta }}</div>
         </v-alert>
       </div>
 
@@ -351,6 +418,7 @@ import ResumenOrden from './ResumenOrden.vue'
 import CajaPago from '../caja/CajaPago.vue'
 import TicketPrinter from '../TicketPrinter.vue'
 import BarraEstado from './BarraEstado.vue'
+import WhatsAppSender from '../WhatsAppSender.vue'
 
 export default {
   components: {
@@ -359,7 +427,8 @@ export default {
     ResumenOrden,
     CajaPago,
     TicketPrinter,
-    BarraEstado
+    BarraEstado,
+    WhatsAppSender
   },
   data() {
     return {
@@ -398,6 +467,15 @@ export default {
       // Estado de impresión
       estadoImpresion: {
         imprimiendo: false,
+        mostrarAlerta: false,
+        tipoAlerta: 'info',
+        tituloAlerta: '',
+        mensajeAlerta: '',
+        iconoAlerta: 'mdi-information'
+      },
+      // Estado de envío por WhatsApp
+      estadoWhatsApp: {
+        enviando: false,
         mostrarAlerta: false,
         tipoAlerta: 'info',
         tituloAlerta: '',
@@ -526,7 +604,7 @@ export default {
       this.mostrarNotificacion(mensaje, 'success')
     },
 
-    // Manejar pago completado con estructura correcta
+    // Manejar pago completado with estructura correcta
     manejarPagoCompletado(data) {
       console.log('Pago completado:', data)
       
@@ -549,9 +627,51 @@ export default {
         fecha: fecha
       }
       
-      // Si es pago total, ir directo a imprimir ticket
+      // Si es pago total, enviar WhatsApp automáticamente y luego ir a imprimir
       if (es_pago_total) {
+        this.enviarWhatsAppAutomatico()
         this.pasoActual = 6
+      }
+    },
+
+    // Nuevo método para envío automático de WhatsApp
+    async enviarWhatsAppAutomatico() {
+      // Solo enviar si hay teléfono válido
+      if (!this.ordenGuardada?.cliente_telefono || 
+          this.ordenGuardada.cliente_telefono === 'N/A' || 
+          this.ordenGuardada.cliente_telefono.trim() === '') {
+        console.log('No hay teléfono válido, omitiendo WhatsApp automático')
+        return
+      }
+
+      try {
+        // Esperar un poco para que se monte el componente
+        await this.$nextTick()
+        
+        if (this.$refs.whatsappSender) {
+          await this.$refs.whatsappSender.enviarPorWhatsApp()
+          console.log('WhatsApp enviado automáticamente')
+        }
+      } catch (error) {
+        console.warn('Error en envío automático de WhatsApp:', error)
+        // No mostrar alerta para no interrumpir el flujo
+      }
+    },
+
+    // Método para reenviar WhatsApp manualmente
+    async reenviarWhatsApp() {
+      if (!this.$refs.whatsappSender) {
+        this.mostrarNotificacion('Error: Componente WhatsApp no disponible', 'error')
+        return
+      }
+
+      this.estadoWhatsApp.enviando = true
+      this.estadoWhatsApp.mostrarAlerta = false
+
+      try {
+        await this.$refs.whatsappSender.enviarPorWhatsApp()
+      } catch (error) {
+        console.error('Error en reenviar WhatsApp:', error)
       }
     },
 
@@ -645,13 +765,41 @@ export default {
     },
 
     manejarWhatsAppEnviado(data) {
-      console.log('WhatsApp enviado:', data);
-      this.mostrarNotificacion(`WhatsApp enviado a ${data.telefono}`, 'info');
+      console.log('WhatsApp enviado:', data)
+      
+      const esAutomatico = !this.estadoWhatsApp.enviando // Si no está marcando como enviando manual
+      
+      this.estadoWhatsApp = {
+        enviando: false,
+        mostrarAlerta: !esAutomatico, // Solo mostrar alerta si fue manual
+        tipoAlerta: 'success',
+        tituloAlerta: 'WhatsApp Enviado',
+        mensajeAlerta: `Mensaje enviado a ${data.telefono}`,
+        iconoAlerta: 'mdi-whatsapp'
+      }
+      
+      if (!esAutomatico) {
+        this.mostrarNotificacion(`WhatsApp enviado a ${data.telefono}`, 'success')
+      }
     },
 
     manejarWhatsAppError(data) {
-      console.warn('Error WhatsApp:', data);
-      this.mostrarNotificacion(`Error al enviar WhatsApp: ${data.error}`, 'warning');
+      console.warn('Error WhatsApp:', data)
+      
+      const esAutomatico = !this.estadoWhatsApp.enviando
+      
+      this.estadoWhatsApp = {
+        enviando: false,
+        mostrarAlerta: !esAutomatico,
+        tipoAlerta: 'warning',
+        tituloAlerta: 'Error WhatsApp',
+        mensajeAlerta: data.error,
+        iconoAlerta: 'mdi-whatsapp'
+      }
+      
+      if (!esAutomatico) {
+        this.mostrarNotificacion(`Error WhatsApp: ${data.error}`, 'warning')
+      }
     },
 
     // Método mejorado para reimprimir con manejo de estados
@@ -712,6 +860,16 @@ export default {
         mensajeAlerta: '',
         iconoAlerta: 'mdi-information'
       }
+
+      // Limpiar estado de WhatsApp
+      this.estadoWhatsApp = {
+        enviando: false,
+        mostrarAlerta: false,
+        tipoAlerta: 'info',
+        tituloAlerta: '',
+        mensajeAlerta: '',
+        iconoAlerta: 'mdi-information'
+      }
     }
   },
 
@@ -756,5 +914,45 @@ export default {
 .tabla-resumen {
   max-height: calc(100vh - 320px);
   overflow-y: auto;
+}
+
+/* Estilos adicionales para el paso 6 - Ticket */
+.pago-resumen-card {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pago-detalles {
+  padding: 16px;
+}
+
+.text-h6 {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.text-subtitle-1 {
+  font-size: 1.125rem;
+  font-weight: 400;
+}
+
+.text-body-1 {
+  font-size: 1rem;
+  font-weight: 300;
+}
+
+.text-body-2 {
+  font-size: 0.875rem;
+  font-weight: 300;
+}
+
+.text-caption {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.v-icon {
+  font-size: 1.5rem;
 }
 </style>
