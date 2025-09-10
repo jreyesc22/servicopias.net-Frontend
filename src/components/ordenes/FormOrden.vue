@@ -89,9 +89,6 @@
         <v-icon size="64" color="success" class="mb-4">mdi-check-circle</v-icon>
         <h2 class="text-h5 mb-2">¡Orden Registrada Exitosamente!</h2>
         <p class="text-body-1 mb-4">Orden #{{ ordenGuardada?.id }}</p>
-        
-
-
 
         <!-- Resumen de la orden creada -->
         <v-card variant="text" class="mx-auto my-2 pa-2" max-width="320" style="border: 1px solid #eee; border-radius: 10px;">
@@ -104,16 +101,19 @@
             </div>
             <div class="d-flex justify-space-between w-100 mt-1">
               <span class="text-caption text-grey-darken-1">Estado</span>
-              <v-chip color="warning" size="x-small" class="ml-1" style="height: 20px;">{{ ordenGuardada?.estado_pago || 'Pendiente' }}</v-chip>
+              <v-chip 
+                :color="ordenGuardada?.estado === 'entregado' ? 'success' : 'warning'" 
+                size="x-small" 
+                class="ml-1" 
+                style="height: 20px;"
+              >
+                {{ ordenGuardada?.estado === 'entregado' ? 'Entregado' : 'Pendiente' }}
+              </v-chip>
             </div>
           </div>
         </v-card>
 
-
-
-        
-      <!-- BOTONES DEL PASO REGISTRO ORDEN CON EXITO -->
-
+        <!-- BOTONES DEL PASO REGISTRO ORDEN CON EXITO -->
         <div class="d-flex gap-3 justify-center mt-6">
           <v-btn 
             color="grey" 
@@ -521,27 +521,27 @@ export default {
     },
     
     // Guardar orden con campos de pago sincronizados
-    async guardarOrden() {
-      if (!this.orden.items.length) {
+    async guardarOrden(datosOrden) {
+      if (!datosOrden.items.length) {
         this.mostrarNotificacion('Debe agregar al menos un producto.', 'error')
         return
       }
 
       this.loading = true
       try {
-        this.orden.total = this.totalOrden
+        datosOrden.total = this.totalOrden
 
         const payload = {
-          cliente_nombre: this.orden.cliente_nombre || 'Consumidor Final',
-          cliente_nit: this.orden.cliente_nit || 'CF',
-          cliente_telefono: this.orden.cliente_telefono || 'N/A',
-          estado: 'pendiente',
-          total: this.orden.total,
+          cliente_nombre: datosOrden.cliente_nombre || 'Consumidor Final',
+          cliente_nit: datosOrden.cliente_nit || 'CF',
+          cliente_telefono: datosOrden.cliente_telefono || 'N/A',
+          estado: datosOrden.estado, // 'pendiente' o 'entregado'
+          total: datosOrden.total,
           // Campos de estado de pago sincronizados
-          abonado: 0,
-          saldo_pendiente: this.orden.total,
-          estado_pago: 'pendiente',
-          items: this.orden.items.map(i => ({
+          abonado: datosOrden.estado === 'entregado' ? datosOrden.total : 0,
+          saldo_pendiente: datosOrden.estado === 'entregado' ? 0 : datosOrden.total,
+          estado_pago: datosOrden.estado === 'entregado' ? 'pagado' : 'pendiente',
+          items: datosOrden.items.map(i => ({
             itemId: i.itemId,
             cantidad: i.cantidad,
             precio_unitario: i.precio_unitario,
@@ -562,11 +562,11 @@ export default {
         
         // Guardar orden con todos los campos necesarios sincronizados
         this.ordenGuardada = {
-          ...this.orden,
+          ...datosOrden,
           id: resData.orden.id,
-          abonado: resData.orden.abonado || 0,
-          saldo_pendiente: resData.orden.saldo_pendiente || resData.orden.total,
-          estado_pago: resData.orden.estado_pago || 'pendiente',
+          abonado: resData.orden.abonado || (datosOrden.estado === 'entregado' ? datosOrden.total : 0),
+          saldo_pendiente: resData.orden.saldo_pendiente || (datosOrden.estado === 'entregado' ? 0 : datosOrden.total),
+          estado_pago: resData.orden.estado_pago || (datosOrden.estado === 'entregado' ? 'pagado' : 'pendiente'),
           tipoPago: { id: 1, nombre: 'Efectivo' }
         }
 

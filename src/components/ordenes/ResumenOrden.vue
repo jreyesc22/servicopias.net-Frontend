@@ -15,6 +15,48 @@
         </v-col>
       </v-row>
 
+      <!-- Campo para seleccionar estado inicial con slider -->
+      <v-row class="mt-4">
+        <v-col cols="12">
+          <div class="d-flex align-center justify-space-between">
+            <div class="flex-grow-1">
+              <h4 class="text-subtitle-1 mb-2">Estado de la orden</h4>
+              <v-switch
+                v-model="ventaDirecta"
+                label="Venta Directa (Entregar inmediatamente)"
+                color="primary"
+                inset
+                density="comfortable"
+                hide-details
+                @change="actualizarEstadoOrden"
+              />
+            </div>
+            <v-chip 
+              :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
+              size="small" 
+              variant="flat"
+              class="ml-4"
+            >
+              {{ estadoSeleccionado === 'entregado' ? 'Entregado' : 'Pendiente' }}
+            </v-chip>
+          </div>
+          
+          <div class="text-body-2 text-grey-darken-1 mt-2">
+            <v-icon 
+              :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
+              size="small" 
+              class="me-1"
+            >
+              {{ estadoSeleccionado === 'entregado' ? 'mdi-check-circle' : 'mdi-clock-outline' }}
+            </v-icon>
+            {{ estadoSeleccionado === 'entregado' 
+              ? 'La orden se marcará como entregada, debe procesar pago.' 
+              : 'La orden irá al taller para procesamiento y envío.' 
+            }}
+          </div>
+        </v-col>
+      </v-row>
+
       <v-table density="comfortable" class="mt-4">
         <thead>
           <tr>
@@ -65,7 +107,9 @@ export default {
   },
   data() {
     return {
-      botonDeshabilitado: false
+      botonDeshabilitado: false,
+      ventaDirecta: false, // Nuevo estado para el switch
+      estadoSeleccionado: 'pendiente' // Valor por defecto
     };
   },
   computed: {
@@ -74,11 +118,19 @@ export default {
     }
   },
   methods: {
+    actualizarEstadoOrden() {
+      this.estadoSeleccionado = this.ventaDirecta ? 'entregado' : 'pendiente'
+    },
     confirmarConRetraso() {
       if (this.botonDeshabilitado) return;
 
       this.botonDeshabilitado = true;
-      this.$emit('confirmar');
+      
+      // Emitir la orden con el estado seleccionado
+      this.$emit('confirmar', {
+        ...this.orden,
+        estado: this.estadoSeleccionado
+      });
 
       setTimeout(() => {
         this.botonDeshabilitado = false;
@@ -87,3 +139,22 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* Estilos adicionales para el slider */
+.d-flex.align-center {
+  align-items: center;
+}
+
+.flex-grow-1 {
+  flex: 1;
+}
+
+.ml-4 {
+  margin-left: 16px;
+}
+
+.me-1 {
+  margin-right: 4px;
+}
+</style>

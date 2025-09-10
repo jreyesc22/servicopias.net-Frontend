@@ -1,9 +1,16 @@
+<!--
+  Este componente muestra los detalles de una orden, incluyendo información del cliente, productos y pagos.
+  en el boton ver del componente padre Ordenes.vue se abre un modal que contiene este componente.
+  También permite exportar la orden como un archivo PDF.
+  la vista está diseñada para impresión y PDF, con estilos específicos para ambos casos.
+-->
+
 <template>
   <div ref="contenidoPDF" class="printable-factura">
     <!-- ENCABEZADO -->
     <div class="header">
       <div class="header-left">
-        <h1 class="company-name">SERVICOPIAS SALAMÁ</h1>
+        <h1 class="company-name">SERVICOPIAS</h1>
         <div class="company-address">
           8va. Avenida 7-25 zona 1, Salamá, Baja Verapaz<br>
           NIT: 7248213-3
@@ -92,7 +99,7 @@
     <div class="terms-section">
       <div class="terms-title">CONDICIONES:</div>
       <div class="terms-content">
-        • Para procesar esta proforma, debe pagar el 50% del total • El saldo restante se paga al entregar • Reclamos: dentro de 24 hrs • Coordine con su representante • La disponibilidad está sujeta a cambios
+        • Para procesar esta proforma, debe pagar el 50% del total • El saldo restante se paga al entregar • Reclamos: dentro de 24 hrs • Coordine con su representante de ventas • La disponibilidad está sujeta a cambios
       </div>
     </div>
 
