@@ -1,6 +1,6 @@
 class ApiService {
   constructor() {
-    this.baseURL = process.env.VUE_APP_API_URL || 'http://192.168.1.10:3000/api'
+    this.baseURL = process.env.VUE_APP_API_URL
     this.timeout = 10000
   }
 
