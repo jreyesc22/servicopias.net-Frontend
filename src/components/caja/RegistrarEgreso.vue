@@ -243,6 +243,8 @@
 <script>
 import { useCajaAPI, useTiposPagoAPI, useEmpleadosAPI } from '../composables/useCajaAPI.js'
 
+import AuthService from '@/services/auth.service'
+
 export default {
   name: 'RegistrarEgreso',
   emits: ['egreso-creado', 'actualizar-movimientos'],
@@ -386,7 +388,7 @@ export default {
     },
     
     inicializarFormulario() {
-      const usuarioActual = JSON.parse(localStorage.getItem('usuario') || '{}')
+      const usuarioActual = AuthService.getCurrentUser() || {}
       
       this.egreso = {
         monto: null,
