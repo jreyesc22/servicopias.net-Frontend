@@ -48,38 +48,44 @@ export default {
     async validarConectividad() {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos timeout
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         
         const response = await fetch(this.servidorImpresion, {
-          method: 'HEAD',
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: 'TEST',
           signal: controller.signal
         });
         
         clearTimeout(timeoutId);
-        return response.ok;
+        return response.status !== 0;
+        
       } catch (error) {
-        console.warn('Servidor de impresión no disponible:', error.message);
+        console.warn('TicketPrinter: Servidor no disponible:', error.message);
         return false;
       }
     },
 
     async imprimir() {
+      console.log('TicketPrinter: Iniciando impresión orden', this.orden.id);
+      
       if (this.imprimiendo) {
-        console.warn('Ya hay una impresión en proceso');
+        console.warn('TicketPrinter: Ya hay una impresión en proceso');
         return;
       }
 
       this.imprimiendo = true;
 
       try {
-        // Validar conectividad antes de intentar imprimir
+        // Validar conectividad
         const conectividadOk = await this.validarConectividad();
         if (!conectividadOk) {
           throw new Error('Servidor de impresión no disponible. Verifique la conexión.');
         }
 
-        // Generar ticket usando la plantilla compartida
+        // Generar ticket
         const texto = generarTicket(this.orden, this.pago);
+        console.log('TicketPrinter: Ticket generado, longitud:', texto.length);
 
         // Enviar a impresora
         const response = await fetch(this.servidorImpresion, {
@@ -92,7 +98,7 @@ export default {
           throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
         }
 
-        console.log('Ticket enviado a la impresora POS exitosamente');
+        console.log('TicketPrinter: Ticket enviado exitosamente');
         
         // Emitir evento de éxito
         this.$emit('impresion-exitosa', {
@@ -101,7 +107,7 @@ export default {
         });
 
       } catch (error) {
-        console.error('Error al imprimir:', error);
+        console.error('TicketPrinter: Error al imprimir:', error.message);
         
         // Emitir evento de error
         this.$emit('impresion-error', {
@@ -110,7 +116,6 @@ export default {
           timestamp: new Date().toISOString()
         });
 
-        // Re-lanzar error para manejo adicional si es necesario
         throw error;
 
       } finally {
@@ -120,6 +125,7 @@ export default {
 
     // Método público para reimprimir
     async reimprimir() {
+      console.log('TicketPrinter: Iniciando reimpresión');
       return await this.imprimir();
     },
 
@@ -139,11 +145,7 @@ export default {
       return;
     }
 
-    console.log('TicketPrinter montado correctamente', {
-      orden_id: this.orden.id,
-      tiene_pago: !!this.pago,
-      servidor: this.servidorImpresion
-    });
+    console.log('TicketPrinter: Componente montado - Orden:', this.orden.id);
   }
 };
 </script>
