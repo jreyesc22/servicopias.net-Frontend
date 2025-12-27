@@ -1,5 +1,6 @@
 // composables/useCajaAPI.js
 import { ref } from 'vue'
+import AuthService from '@/services/auth.service'
 
 export function useCajaAPI() {
   const loading = ref(false)
@@ -62,6 +63,14 @@ export function useCajaAPI() {
 
   // Crear nuevo movimiento
   const crearMovimiento = async (datosMovimiento) => {
+    // Asegurar que el ID del empleado esté presente
+    if (!datosMovimiento.id_empleado) {
+      const currentUser = AuthService.getCurrentUser()
+      if (currentUser) {
+        datosMovimiento.id_empleado = currentUser.id
+      }
+    }
+
     return await fetchAPI(`${API_BASE_URL}/create`, {
       method: 'POST',
       body: JSON.stringify(datosMovimiento)
