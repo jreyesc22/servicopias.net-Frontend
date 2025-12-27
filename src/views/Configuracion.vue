@@ -1,39 +1,5 @@
 <template>
   <v-container fluid class="configuracion-container">
-    <!-- Header Principal -->
-    <v-card class="mb-6 header-card" elevation="3">
-      <v-card-title class="header-title">
-        <div class="d-flex align-center justify-space-between w-100">
-          <div class="title-section">
-            <h1 class="text-h4 font-weight-bold mb-2">
-              <v-icon class="mr-3" size="40" color="white">mdi-account-group</v-icon>
-              Gestión de Empleados
-            </h1>
-            <p class="text-h6 mb-0 header-subtitle">
-              Gestiona los empleados del sistema
-            </p>
-          </div>
-          
-          <div class="d-flex align-center gap-3">
-            <v-chip variant="elevated" color="success" size="large">
-              <v-icon start>mdi-shield-check</v-icon>
-              Sistema Activo
-            </v-chip>
-            <v-btn 
-              color="white" 
-              variant="elevated" 
-              size="large"
-              @click="guardarConfiguracion"
-              :loading="guardando"
-            >
-              <v-icon start>mdi-content-save</v-icon>
-              Guardar Cambios
-            </v-btn>
-          </div>
-        </div>
-      </v-card-title>
-    </v-card>
-
     <!-- Contenido Principal - Empleados -->
     <v-card elevation="2" class="config-card">
       <v-card-title class="section-title d-flex justify-space-between">
@@ -55,7 +21,7 @@
       <v-expand-transition>
         <div v-if="showEmpleados">
           <v-card-text>
-            <Empleados />
+            <GestionEmpleados />
           </v-card-text>
         </div>
       </v-expand-transition>
@@ -87,11 +53,10 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import Empleados from '@/components/empleado/FormEmpleados.vue'
+import GestionEmpleados from '@/components/configuracion/empleados/GestionEmpleados.vue'
 
 // Estado reactivo
 const showEmpleados = ref(false)
-const guardando = ref(false)
 
 // Snackbar
 const snackbar = reactive({
@@ -105,19 +70,6 @@ const toggleEmpleados = () => {
   showEmpleados.value = !showEmpleados.value
 }
 
-const guardarConfiguracion = async () => {
-  guardando.value = true
-  try {
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    mostrarNotificacion('Configuración guardada correctamente', 'success')
-  } catch (error) {
-    mostrarNotificacion('Error al guardar la configuración', 'error')
-  } finally {
-    guardando.value = false
-  }
-}
-
 const mostrarNotificacion = (mensaje, color = 'success') => {
   snackbar.message = mensaje
   snackbar.color = color
@@ -129,25 +81,6 @@ const mostrarNotificacion = (mensaje, color = 'success') => {
 .configuracion-container {
   max-width: 100%;
   padding: 20px;
-}
-
-.header-card {
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  color: white;
-  border-radius: 16px;
-}
-
-.header-title {
-  padding: 32px;
-}
-
-.title-section h1 {
-  color: white;
-}
-
-.header-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 400;
 }
 
 .config-card {

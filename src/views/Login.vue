@@ -8,33 +8,52 @@
               <h2 class="login-title">Bienvenido</h2>
               <p class="login-subtitle">Inicia sesión en tu cuenta</p>
             </div>
-            <v-form @submit.prevent="login">
+            
+            <v-alert
+              v-if="error"
+              type="error"
+              variant="tonal"
+              class="mb-4"
+              closable
+              @click:close="error = ''"
+            >
+              {{ error }}
+            </v-alert>
+
+            <v-form ref="form" @submit.prevent="handleLogin">
               <v-text-field
                 v-model="username"
                 label="Usuario"
                 type="text"
-                solo
+                variant="solo"
                 flat
-                class="custom-input"
+                class="custom-input mb-2"
                 hide-details="auto"
                 prepend-inner-icon="mdi-account"
+                :rules="[v => !!v || 'El usuario es requerido']"
+                required
               ></v-text-field>
               <v-text-field
                 v-model="password"
                 label="Contraseña"
                 type="password"
-                solo
+                variant="solo"
                 flat
                 class="custom-input"
                 hide-details="auto"
                 prepend-inner-icon="mdi-lock"
+                :rules="[v => !!v || 'La contraseña es requerida']"
+                required
               ></v-text-field>
               <v-btn 
                 block
                 size="large"
                 class="login-btn mt-6"
-                @click="login"
-                depressed
+                type="submit"
+                :loading="loading"
+                :disabled="loading"
+                color="primary"
+                elevation="2"
               >
                 Ingresar
               </v-btn>
@@ -50,18 +69,40 @@
 </template>
 
 <script>
+import AuthService from '@/services/auth.service';
+
 export default {
   name: 'Login',
   data() {
     return {
       username: '',
-      password: ''
+      password: '',
+      loading: false,
+      error: ''
     }
   },
   methods: {
-    login() {
-      // Aquí va la lógica de login real
-      this.$router.push('/dashboard')
+    async handleLogin() {
+      const { valid } = await this.$refs.form.validate()
+      
+      if (!valid) return
+
+      this.loading = true
+      this.error = ''
+
+      try {
+        await AuthService.login(this.username, this.password)
+        this.$router.push('/dashboard')
+      } catch (error) {
+        console.error(error)
+        if (error.message && error.message.includes('401')) {
+           this.error = 'Usuario o contraseña incorrectos'
+        } else {
+           this.error = 'Error al iniciar sesión. Intente nuevamente.'
+        }
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
