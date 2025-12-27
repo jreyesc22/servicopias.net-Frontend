@@ -419,6 +419,7 @@ import CajaPago from '../caja/CajaPago.vue'
 import TicketPrinter from '../TicketPrinter.vue'
 import BarraEstado from './BarraEstado.vue'
 import WhatsAppSender from '../WhatsAppSender.vue'
+import AuthService from '@/services/auth.service'
 
 export default {
   components: {
@@ -530,6 +531,9 @@ export default {
       this.loading = true
       try {
         datosOrden.total = this.totalOrden
+        
+        const currentUser = AuthService.getCurrentUser()
+        const empleadoId = currentUser ? currentUser.id : null
 
         const payload = {
           cliente_nombre: datosOrden.cliente_nombre || 'Consumidor Final',
@@ -537,6 +541,7 @@ export default {
           cliente_telefono: datosOrden.cliente_telefono || 'N/A',
           estado: datosOrden.estado, // 'pendiente' o 'entregado'
           total: datosOrden.total,
+          empleadoId: empleadoId, // Agregado empleadoId
           // Campos de estado de pago sincronizados
           abonado: datosOrden.estado === 'entregado' ? datosOrden.total : 0,
           saldo_pendiente: datosOrden.estado === 'entregado' ? 0 : datosOrden.total,

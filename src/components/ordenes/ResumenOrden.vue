@@ -3,59 +3,58 @@
     <v-card-title class="headline">Resumen de la Orden</v-card-title>
 
     <v-card-text>
-      <v-row>
-        <v-col cols="12" sm="6" md="4">
-          <strong>Cliente:</strong> {{ orden.cliente_nombre || 'CONSUMIDOR FINAL' }}
-        </v-col>
-        <v-col cols="12" sm="6" md="4">
-          <strong>NIT:</strong> {{ orden.cliente_nit || 'CF' }}
-        </v-col>
-        <v-col cols="12" sm="6" md="4">
-          <strong>Teléfono:</strong> {{ orden.cliente_telefono || 'N/A' }}
-        </v-col>
-      </v-row>
+      <!-- Datos del Cliente -->
+      <div class="mb-3">
+        <div class="text-h6 font-weight-bold text-primary mb-0">
+          {{ orden.cliente_nombre || 'CONSUMIDOR FINAL' }}
+        </div>
+        <div class="d-flex flex-wrap gap-4 text-body-2 text-medium-emphasis">
+          <div class="mr-4">
+            <v-icon size="x-small" start>mdi-card-account-details</v-icon>
+            <strong>NIT:</strong> {{ orden.cliente_nit || 'CF' }}
+          </div>
+          <div>
+            <v-icon size="x-small" start>mdi-phone</v-icon>
+            <strong>Tel:</strong> {{ orden.cliente_telefono || 'N/A' }}
+          </div>
+        </div>
+      </div>
 
-      <!-- Campo para seleccionar estado inicial con slider -->
-      <v-row class="mt-4">
-        <v-col cols="12">
-          <div class="d-flex align-center justify-space-between">
-            <div class="flex-grow-1">
-              <h4 class="text-subtitle-1 mb-2">Estado de la orden</h4>
-              <v-switch
-                v-model="ventaDirecta"
-                label="Venta Directa (Entregar inmediatamente)"
-                color="primary"
-                inset
-                density="comfortable"
-                hide-details
-                @change="actualizarEstadoOrden"
-              />
-            </div>
-            <v-chip 
-              :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
-              size="small" 
-              variant="flat"
-              class="ml-4"
-            >
-              {{ estadoSeleccionado === 'entregado' ? 'Entregado' : 'Pendiente' }}
-            </v-chip>
-          </div>
-          
-          <div class="text-body-2 text-grey-darken-1 mt-2">
-            <v-icon 
-              :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
-              size="small" 
-              class="me-1"
-            >
-              {{ estadoSeleccionado === 'entregado' ? 'mdi-check-circle' : 'mdi-clock-outline' }}
-            </v-icon>
-            {{ estadoSeleccionado === 'entregado' 
-              ? 'La orden se marcará como entregada, debe procesar pago.' 
-              : 'La orden irá al taller para procesamiento y envío.' 
-            }}
-          </div>
-        </v-col>
-      </v-row>
+      <v-divider class="mb-4"></v-divider>
+
+      <!-- Estado de la orden -->
+      <div class="d-flex align-center justify-space-between py-2">
+        <v-switch
+          v-model="ventaDirecta"
+          color="success"
+          inset
+          density="compact"
+          hide-details
+          class="ma-0"
+          @change="actualizarEstadoOrden"
+        >
+          <template v-slot:label>
+            <span class="text-body-1 font-weight-medium ml-2">
+              Venta Directa (Entregar inmediatamente)
+            </span>
+          </template>
+        </v-switch>
+
+        <v-chip 
+          :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
+          variant="tonal"
+          class="font-weight-bold"
+        >
+          {{ estadoSeleccionado === 'entregado' ? 'ENTREGADO' : 'PENDIENTE' }}
+        </v-chip>
+      </div>
+      
+      <div class="text-caption text-grey mb-4 ml-10">
+        {{ estadoSeleccionado === 'entregado' 
+          ? 'La orden se marcará como entregada y lista para cobro.' 
+          : 'La orden se enviará al taller para su producción.' 
+        }}
+      </div>
 
       <v-table density="comfortable" class="mt-4">
         <thead>
@@ -108,8 +107,8 @@ export default {
   data() {
     return {
       botonDeshabilitado: false,
-      ventaDirecta: false, // Nuevo estado para el switch
-      estadoSeleccionado: 'pendiente' // Valor por defecto
+      ventaDirecta: true, // Activo por defecto
+      estadoSeleccionado: 'entregado' // Valor por defecto
     };
   },
   computed: {

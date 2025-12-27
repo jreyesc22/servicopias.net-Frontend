@@ -211,6 +211,7 @@
 <script>
 import OrdenDetalle from './OrdenDetalle.vue'
 import AbonarOrden from '../caja/AbonarOrden.vue'
+import AuthService from '@/services/auth.service'
 
 export default {
   name: 'ListaOrdenes',
@@ -228,7 +229,7 @@ export default {
       loading: false,
       pagosCaja: [],
       tiposDePago: [],
-      empleadoId: Number(localStorage.getItem('empleadoId')) || 1,
+      empleadoId: null,
 
       // Estado para PDF
       generandoPDF: false,
@@ -280,6 +281,11 @@ export default {
   mounted() {
     this.cargarOrdenes()
     this.cargarTiposDePago()
+    
+    const currentUser = AuthService.getCurrentUser()
+    if (currentUser) {
+      this.empleadoId = currentUser.id
+    }
   },
   methods: {
     async cargarOrdenes() {
