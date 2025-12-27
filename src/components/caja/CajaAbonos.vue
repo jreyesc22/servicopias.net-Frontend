@@ -49,7 +49,7 @@ export default {
   data() {
     return {
       abonos: [],
-      API_URL: process.env.VUE_APP_API_URL || "http://localhost:3000/api"
+      API_URL: process.env.VUE_APP_API_URL
     };
   },
   mounted() {
