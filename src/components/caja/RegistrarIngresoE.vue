@@ -109,6 +109,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import axios from "axios";
+import AuthService from '@/services/auth.service';
 
 const dialog = ref(true);
 const formRef = ref(null);
@@ -140,6 +141,11 @@ const empleadoSeleccionado = computed(() => {
 });
 
 onMounted(async () => {
+  const currentUser = AuthService.getCurrentUser();
+  if (currentUser) {
+    form.id_empleado = currentUser.id;
+  }
+
   empleados.value = [
     { id: 1, nombre: "Dev" },
     { id: 2, nombre: "Admin" },
