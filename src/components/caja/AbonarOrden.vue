@@ -424,7 +424,7 @@ export default {
   },
 
   mounted() {
-    //quiero que analisis todo el frontend de este proyecto e identifiquemos las variables de entorno posibles y dejemos solo una para la interaccion con la API
+  
     // Inicializar tipo de pago por defecto
     if (this.tiposDePago?.length > 0) {
       this.tipoPago = this.efectivoId;

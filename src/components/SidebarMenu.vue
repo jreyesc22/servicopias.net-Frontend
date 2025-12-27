@@ -14,11 +14,112 @@
       <!-- Espaciador -->
       <v-spacer />
       
-      <!-- Botón de cerrar sesión o usuario -->
-      <v-btn icon aria-label="Opciones de usuario">
-        <v-icon>mdi-account-circle</v-icon>
-      </v-btn>
+      <!-- Menú de usuario -->
+      <v-menu offset-y transition="scale-transition">
+        <template v-slot:activator="{ props }">
+          <v-btn
+            v-bind="props"
+            class="text-none px-2"
+            variant="text"
+          >
+            <v-icon start>mdi-account-circle</v-icon>
+            <span class="d-none d-sm-inline">{{ currentUser ? currentUser.nombre : 'Usuario' }}</span>
+            <v-icon end>mdi-chevron-down</v-icon>
+          </v-btn>
+        </template>
+        <v-list density="compact" width="200">
+          <v-list-item>
+            <v-list-item-title class="font-weight-bold">
+              {{ currentUser ? currentUser.nombre : 'Usuario' }}
+            </v-list-item-title>
+            <v-list-item-subtitle>
+              {{ currentUser ? currentUser.rol : '' }}
+            </v-list-item-subtitle>
+          </v-list-item>
+          <v-divider class="my-2"></v-divider>
+          
+          <v-list-item @click="dialogPassword = true" link>
+            <template v-slot:prepend>
+              <v-icon size="small" class="mr-2">mdi-lock-reset</v-icon>
+            </template>
+            <v-list-item-title>Cambiar Contraseña</v-list-item-title>
+          </v-list-item>
+
+          <v-list-item @click="handleLogout" link color="error">
+            <template v-slot:prepend>
+              <v-icon size="small" class="mr-2" color="error">mdi-logout</v-icon>
+            </template>
+            <v-list-item-title class="text-error">Cerrar Sesión</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
+
+    <!-- Diálogo Cambiar Contraseña -->
+    <v-dialog v-model="dialogPassword" max-width="400px">
+      <v-card>
+        <v-card-title class="bg-primary text-white">
+          Cambiar Contraseña
+        </v-card-title>
+        <v-card-text class="pt-4">
+          <v-form ref="formPassword" v-model="validPassword" @submit.prevent="cambiarContrasena">
+            <v-text-field
+              v-model="passwordData.current"
+              label="Contraseña Actual"
+              type="password"
+              variant="outlined"
+              density="compact"
+              :rules="[v => !!v || 'Requerido']"
+            ></v-text-field>
+            
+            <v-text-field
+              v-model="passwordData.new"
+              label="Nueva Contraseña"
+              type="password"
+              variant="outlined"
+              density="compact"
+              :rules="[
+                v => !!v || 'Requerido',
+                v => v.length >= 6 || 'Mínimo 6 caracteres'
+              ]"
+            ></v-text-field>
+
+            <v-text-field
+              v-model="passwordData.confirm"
+              label="Confirmar Nueva Contraseña"
+              type="password"
+              variant="outlined"
+              density="compact"
+              :rules="[
+                v => !!v || 'Requerido',
+                v => v === passwordData.new || 'Las contraseñas no coinciden'
+              ]"
+            ></v-text-field>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="dialogPassword = false">Cancelar</v-btn>
+          <v-btn 
+            color="primary" 
+            variant="elevated" 
+            @click="cambiarContrasena"
+            :loading="loadingPassword"
+            :disabled="!validPassword"
+          >
+            Actualizar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.text }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar.show = false">Cerrar</v-btn>
+      </template>
+    </v-snackbar>
 
     <!-- Menú lateral responsivo -->
     <v-navigation-drawer
@@ -110,12 +211,31 @@
 </template>
 
 <script>
+import AuthService from '@/services/auth.service';
+
 export default {
   name: 'SidebarMenu',
   data() {
     return {
       drawer: true,
       loading: false,
+      currentUser: null,
+      
+      // Password Change
+      dialogPassword: false,
+      validPassword: false,
+      loadingPassword: false,
+      passwordData: {
+        current: '',
+        new: '',
+        confirm: ''
+      },
+      snackbar: {
+        show: false,
+        text: '',
+        color: 'success'
+      },
+
       drawerWidth: 280,
       menuItems: [
         { 
@@ -212,8 +332,39 @@ export default {
   mounted() {
     // Configurar drawer según el tamaño de pantalla inicial
     this.drawer = !this.isMobile && !this.isTablet;
+    this.currentUser = AuthService.getCurrentUser();
   },
   methods: {
+    async cambiarContrasena() {
+      const { valid } = await this.$refs.formPassword.validate();
+      if (!valid) return;
+
+      this.loadingPassword = true;
+      try {
+        await AuthService.changePassword(
+          this.currentUser.id,
+          this.passwordData.current,
+          this.passwordData.new
+        );
+        
+        this.snackbar = {
+          show: true,
+          text: 'Contraseña actualizada correctamente',
+          color: 'success'
+        };
+        this.dialogPassword = false;
+        this.$refs.formPassword.reset();
+      } catch (error) {
+        console.error(error);
+        this.snackbar = {
+          show: true,
+          text: error.message || 'Error al actualizar contraseña',
+          color: 'error'
+        };
+      } finally {
+        this.loadingPassword = false;
+      }
+    },
     toggleDrawer() {
       this.drawer = !this.drawer;
     },
@@ -228,13 +379,14 @@ export default {
       return this.$route.path === route || this.$route.path.startsWith(route + '/');
     },
     handleLogout() {
-      this.$store.dispatch('auth/logout')
-      .then(() => {
-        this.$router.push('/login');
-      })
-      .catch(err => {
+      try {
+        AuthService.logout();
+        this.$router.push('/auth/login');
+      } catch (err) {
         console.error('Error al cerrar sesión:', err);
-      });
+        // Forzar redirección incluso si hay error
+        this.$router.push('/auth/login');
+      }
     }
   }
 };
