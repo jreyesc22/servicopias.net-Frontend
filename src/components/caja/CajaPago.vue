@@ -15,7 +15,7 @@
             <v-card-text class="pa-3">
               <div class="d-flex justify-space-between align-center mb-2">
                 <span class="text-caption text-grey">Cliente:</span>
-                <span class="text-body-2 font-weight-medium">{{ orden.cliente_nombre || 'Sin nombre' }}</span>
+                <span class="text-body-2 font-weight-medium">{{ orden.cliente_nombre || 'CF' }}</span>
               </div>
               <v-divider class="my-2" />
               <div class="d-flex justify-space-between align-center mb-1">
@@ -87,7 +87,8 @@
               <v-col cols="12" sm="6">
                 <v-select
                   v-model="metodoPago"
-                  :items="metodosPago"
+                  :items="tiposPago"
+                  :loading="loadingTipos"
                   item-title="nombre"
                   item-value="id"
                   label="Método"
@@ -197,9 +198,17 @@
 
 <script>
 import axios from 'axios';
+import { useTiposPago } from '@/components/composables/useTiposPago';
 
 export default {
   name: 'CajaPago',
+  setup() {
+    const { tiposPago, fetchTiposPago, loading } = useTiposPago();
+    return { tiposPago, fetchTiposPago, loadingTipos: loading };
+  },
+  mounted() {
+    this.fetchTiposPago();
+  },
   props: {
     orden: {
       type: Object,
@@ -247,15 +256,7 @@ export default {
       },
       
       // Catálogos
-      metodosPago: [
-        { id: 1, nombre: 'Efectivo' },
-        { id: 2, nombre: 'Tarjeta de Crédito' },
-        { id: 3, nombre: 'Transferencia Bancaria' },
-        { id: 4, nombre: 'Pago Móvil' },
-        { id: 5, nombre: 'Cheque' },
-        { id: 6, nombre: 'Crédito a Cliente' },
-        { id: 7, nombre: 'Vale / Cupón' }
-      ],
+      // metodosPago se obtiene de useTiposPago
       
       // Reglas de validación
       reglasValidacion: {
@@ -278,7 +279,10 @@ export default {
     },
     
     cambio() {
-      if (this.metodoPago === 1) {
+      const tipo = this.tiposPago.find(t => t.id === this.metodoPago);
+      const esEfectivo = tipo && tipo.nombre.toLowerCase() === 'efectivo';
+
+      if (esEfectivo) {
         const efectivo = parseFloat(this.efectivoRecibido) || 0;
         const monto = parseFloat(this.montoAPagar) || 0;
         return Math.max(0, efectivo - monto);
@@ -298,15 +302,18 @@ export default {
     },
     
     etiquetaDocumento() {
-      const etiquetas = {
-        2: 'Número de autorización',
-        3: 'Número de transferencia',
-        4: 'Número de referencia',
-        5: 'Número de cheque',
-        6: 'Número de documento',
-        7: 'Número de vale'
-      };
-      return etiquetas[this.metodoPago] || 'Número de documento';
+      if (!this.tiposPago) return 'Número de documento';
+      const tipo = this.tiposPago.find(t => t.id === this.metodoPago);
+      if (!tipo) return 'Número de documento';
+      
+      const nombre = tipo.nombre.toLowerCase();
+      if (nombre.includes('tarjeta')) return 'Número de autorización';
+      if (nombre.includes('transferencia')) return 'Número de transferencia';
+      if (nombre.includes('móvil') || nombre.includes('movil')) return 'Número de referencia';
+      if (nombre.includes('cheque')) return 'Número de cheque';
+      if (nombre.includes('vale')) return 'Número de vale';
+      
+      return 'Número de documento';
     },
     
     reglasValidacionAbono() {
@@ -334,11 +341,14 @@ export default {
       const efectivoRecibido = parseFloat(this.efectivoRecibido) || 0;
       const montoAbono = parseFloat(this.montoAbono) || 0;
       
+      const tipo = this.tiposPago.find(t => t.id === this.metodoPago);
+      const esEfectivo = tipo && tipo.nombre.toLowerCase() === 'efectivo';
+      
       // Validación básica sin usar refs
-      if (this.metodoPago === 1 && efectivoRecibido < montoAPagar) {
+      if (esEfectivo && efectivoRecibido < montoAPagar) {
         return false;
       }
-      if (this.metodoPago > 1 && !this.numeroDocumento) {
+      if (!esEfectivo && !this.numeroDocumento) {
         return false;
       }
       if (this.tipoPagoSeleccionado === 'parcial' && montoAbono <= 0) {
@@ -348,6 +358,18 @@ export default {
     }
   },
   watch: {
+    tiposPago: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal && newVal.length > 0) {
+           const exists = newVal.some(t => t.id === this.metodoPago);
+           if (!exists) {
+               const efectivo = newVal.find(t => t.nombre.toLowerCase() === 'efectivo');
+               this.metodoPago = efectivo ? efectivo.id : newVal[0].id;
+           }
+        }
+      }
+    },
     tipoPagoSeleccionado(nuevoValor) {
       // Sincronizar con el chip-group
       this.tipoPagoChip = nuevoValor;
@@ -423,6 +445,11 @@ export default {
         const valido = await this.$refs.formPago.validate();
         if (!valido.valid) return;
       }
+
+      if (!this.usuario || !this.usuario.id) {
+        this.mostrarMensaje('error', 'Error: No se ha identificado al usuario (empleado). Recargue la página.');
+        return;
+      }
       
       this.procesando = true;
       
@@ -450,7 +477,7 @@ export default {
         this.mostrarMensaje('success', 'Pago procesado exitosamente');
 
         const esPagoTotal = this.nuevoSaldo <= 0;
-        const metodoPagoNombre = this.metodosPago.find(m => m.id === this.metodoPago)?.nombre;
+        const metodoPagoNombre = (this.tiposPago || []).find(m => m.id === this.metodoPago)?.nombre || 'Desconocido';
         
         // Emitir evento cobro-realizado con estructura esperada por FormOrden
         this.$emit('cobro-realizado', {

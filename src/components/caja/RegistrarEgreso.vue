@@ -241,7 +241,9 @@
   </div>
 </template>
 <script>
-import { useCajaAPI, useTiposPagoAPI, useEmpleadosAPI } from '../composables/useCajaAPI.js'
+import { useCajaAPI } from '../composables/useCajaAPI.js'
+import { useTiposPago } from '@/components/composables/useTiposPago'
+import { useEmpleados } from '@/components/composables/useEmpleados'
 
 import AuthService from '@/services/auth.service'
 
@@ -254,9 +256,9 @@ export default {
       formularioValido: false,
       guardando: false,
       
-      // Datos de los composables
-      tiposPago: [],
-      empleados: [],
+      // Datos de los composables (se llenan desde setup)
+      // tiposPago: [], // Removed
+      // empleados: [], // Removed
       
       egreso: {
         monto: null,
@@ -283,13 +285,15 @@ export default {
   setup() {
     // Inicializar composables
     const cajaAPI = useCajaAPI()
-    const tiposPagoAPI = useTiposPagoAPI()
-    const empleadosAPI = useEmpleadosAPI()
+    const { tiposPago, fetchTiposPago } = useTiposPago()
+    const { empleados, fetchEmpleados } = useEmpleados()
     
     return {
       cajaAPI,
-      tiposPagoAPI,
-      empleadosAPI
+      tiposPagoData: tiposPago,
+      fetchTiposPago,
+      empleadosData: empleados,
+      fetchEmpleados
     }
   },
   async created() {
@@ -298,7 +302,7 @@ export default {
   },
   computed: {
     tiposPagoItems() {
-      return this.tiposPago.map(tipo => ({
+      return (this.tiposPagoData || []).map(tipo => ({
         title: tipo.nombre,
         value: tipo.id,
         props: {
@@ -307,7 +311,7 @@ export default {
       }))
     },
     empleadosItems() {
-      return this.empleados.map(emp => ({
+      return (this.empleadosData || []).map(emp => ({
         title: emp.nombre,
         value: emp.id,
         props: {
@@ -316,7 +320,7 @@ export default {
       }))
     },
     tipoSeleccionado() {
-      return this.tiposPago.find(tipo => tipo.id === this.egreso.id_tipo_pago)
+      return (this.tiposPagoData || []).find(tipo => tipo.id === this.egreso.id_tipo_pago)
     },
     esEfectivo() {
       return this.tipoSeleccionado?.nombre?.toLowerCase().includes('efectivo')
@@ -356,32 +360,17 @@ export default {
         console.log('Cargando datos iniciales...')
         
         // Cargar tipos de pago
-        const tiposPagoData = await this.tiposPagoAPI.obtenerTiposPago()
-        this.tiposPago = Array.isArray(tiposPagoData) ? tiposPagoData : (tiposPagoData.data || [])
-        console.log('Tipos de pago cargados:', this.tiposPago)
+        await this.fetchTiposPago()
         
         // Cargar empleados
-        const empleadosData = await this.empleadosAPI.obtenerEmpleados()
-        this.empleados = Array.isArray(empleadosData) ? empleadosData : (empleadosData.data || [])
-        console.log('Empleados cargados:', this.empleados)
+        await this.fetchEmpleados()
         
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error)
         this.mostrarError('Error al cargar los datos necesarios')
-        
-        // Usar datos de fallback si hay error
-        this.tiposPago = [
-          { id: 1, nombre: 'Efectivo' },
-          { id: 2, nombre: 'Tarjeta de Débito' },
-          { id: 3, nombre: 'Tarjeta de Crédito' },
-          { id: 4, nombre: 'Transferencia Bancaria' }
-        ]
-        
-        this.empleados = [
-          { id: 1, nombre: 'Osman Reyes', puesto: 'Atención al Cliente' }
-        ]
       }
     },
+
     
     abrirDialog() {
       this.dialogVisible = true
@@ -397,7 +386,7 @@ export default {
         numero_recibo: '',
         monto_recibido: null,
         cambio: null,
-        id_empleado: usuarioActual.id || (this.empleados.length > 0 ? this.empleados[0].id : null),
+        id_empleado: usuarioActual.id || (this.empleadosData && this.empleadosData.length > 0 ? this.empleadosData[0].id : null),
         id_orden: null,
         id_tipo_pago: null
       }
@@ -486,12 +475,12 @@ export default {
     },
     
     getNombreTipoPago(id) {
-      const tipo = this.tiposPago.find(t => t.id === id)
+      const tipo = (this.tiposPagoData || []).find(t => t.id === id)
       return tipo ? tipo.nombre : 'No seleccionado'
     },
     
     getNombreEmpleado(id) {
-      const empleado = this.empleados.find(e => e.id === id)
+      const empleado = (this.empleadosData || []).find(e => e.id === id)
       return empleado ? empleado.nombre : 'No seleccionado'
     },
     

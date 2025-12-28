@@ -455,9 +455,9 @@ export default {
       ordenGuardada: null,
       loading: false,
       // Información del usuario actual
-      usuarioActual: {
-        id: 1, // ⚠️ IMPORTANTE: Reemplaza con el ID real del usuario logueado
-        nombre: 'Usuario Sistema' // ⚠️ IMPORTANTE: Reemplaza con el nombre real
+      usuarioActual: AuthService.getCurrentUser() || {
+        id: null,
+        nombre: 'desconocido'
       },
       // Control de notificaciones
       snackbar: {
@@ -880,11 +880,6 @@ export default {
 
   // Inicializar usuario al montar componente
   async mounted() {
-    // Aquí deberías obtener la información del usuario logueado
-    // Ejemplo:
-    // const usuario = await this.obtenerUsuarioActual()
-    // this.usuarioActual = usuario
-    
     console.log('Componente montado con usuario:', this.usuarioActual)
   }
 }
