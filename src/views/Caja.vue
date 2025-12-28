@@ -291,6 +291,8 @@ import MovimientosList from '../components/caja/MovimientosList.vue'
 import { useCajaAPI } from '../components/composables/useCajaAPI.js'
 import RegistrarEgreso from '../components/caja/RegistrarEgreso.vue'
 import MovimientoModal from '../components/caja/RegistrarIngresoE.vue'
+import { useTiposPago } from '../components/composables/useTiposPago'
+import { useEmpleados } from '../components/composables/useEmpleados'
 
 const movimientos = ref([])
 const resumenDia = ref(null)
@@ -304,6 +306,8 @@ const notificacion = ref(null)
 const notificacionVisible = ref(false)
 
 const { obtenerMovimientosHoy, obtenerMovimientosPorFecha, crearMovimiento, eliminarMovimiento: eliminarMovimientoAPI } = useCajaAPI()
+const { tiposPago, fetchTiposPago } = useTiposPago()
+const { empleados, fetchEmpleados } = useEmpleados()
 
 const fechaActual = computed(() =>
   new Date().toLocaleDateString('es-GT', {
@@ -434,7 +438,11 @@ const mostrarNotificacion = (mensaje, tipo = 'info') => {
   notificacionVisible.value = true
 }
 
-onMounted(() => cargarMovimientosHoy())
+onMounted(() => {
+  cargarMovimientosHoy()
+  fetchTiposPago()
+  fetchEmpleados()
+})
 
 </script>
 
