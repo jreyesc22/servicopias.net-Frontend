@@ -1,153 +1,203 @@
 <template>
-  <v-container class="py-2" max-width="500">
+  <v-container class="py-2" max-width="600">
     <v-card class="pa-4" elevation="2" rounded="lg">
       <!-- Header compacto -->
       <div class="text-center mb-4">
-        <v-icon size="32" color="primary" class="mb-1">mdi-cash-plus</v-icon>
-        <h3 class="text-h6 font-weight-bold mb-1">Registrar Abono</h3>
-        <p class="text-body-2 text-grey">Orden #{{ orden.id }}</p>
+        <v-icon size="32" color="primary" class="mb-1">mdi-cash-register</v-icon>
+        <h3 class="text-h6 font-weight-bold mb-1">Pago - Orden #{{ orden.id }}</h3>
       </div>
 
-      <!-- Información de la orden compacta -->
-      <v-card variant="tonal" color="primary" class="mb-4" density="compact">
-        <v-card-text class="pa-3">
-          <v-row dense>
-            <v-col cols="12" sm="6">
-              <div class="text-caption text-grey">Cliente:</div>
-              <div class="text-body-2 font-weight-medium">{{ orden.cliente_nombre || 'Sin nombre' }}</div>
-            </v-col>
-            <v-col cols="12" sm="6" class="text-sm-right">
-              <div class="text-caption text-grey">Total orden:</div>
-              <div class="text-body-2 font-weight-bold">Q {{ formatMoney(orden.total) }}</div>
-            </v-col>
-          </v-row>
-          <v-divider class="my-2" />
-          <div class="d-flex justify-space-between align-center">
-            <span class="text-body-2 font-weight-medium text-warning">Saldo pendiente:</span>
-            <span class="text-h6 font-weight-bold text-primary">Q {{ formatMoney(orden.saldo_pendiente) }}</span>
-          </div>
-        </v-card-text>
-      </v-card>
-
-      <!-- Formulario optimizado -->
-      <v-form ref="form" v-model="formValido" @submit.prevent="registrarAbono">
-        <v-row dense>
-          <!-- Monto y método de pago en fila -->
-          <v-col cols="12" sm="6">
-            <v-text-field
-              v-model.number="monto"
-              label="Monto del abono"
-              type="number"
-              step="0.01"
-              variant="outlined"
-              density="compact"
-              prefix="Q"
-              prepend-inner-icon="mdi-cash"
-              :rules="reglasValidacionMonto"
-              @input="validarMonto"
-              required
-            />
-          </v-col>
-          
-          <v-col cols="12" sm="6">
-            <v-select
-              v-model="tipoPago"
-              :items="tiposDePago"
-              item-title="nombre"
-              item-value="id"
-              label="Método de pago"
-              variant="outlined"
-              density="compact"
-              prepend-inner-icon="mdi-credit-card"
-              required
-            />
-          </v-col>
-        </v-row>
-
-        <!-- Campo condicional para número de recibo -->
-        <v-slide-y-transition>
-          <v-text-field
-            v-if="requiereNumeroRecibo"
-            v-model="numeroRecibo"
-            :label="`Número de ${tipoComprobanteTexto}`"
-            variant="outlined"
-            density="compact"
-            prepend-inner-icon="mdi-file-document"
-            :rules="reglasNumeroRecibo"
-            :hint="`Ingrese el número de ${tipoComprobanteTexto}`"
-            persistent-hint
-            class="mb-2"
-            required
-          />
-        </v-slide-y-transition>
-
-        <!-- Observaciones compactas -->
-        <v-textarea
-          v-model="observacion"
-          label="Observación (opcional)"
-          variant="outlined"
-          density="compact"
-          rows="2"
-          prepend-inner-icon="mdi-note-text"
-          class="mb-3"
-        />
-
-        <!-- Resumen del abono -->
-        <v-expand-transition>
-          <v-card 
-            v-if="monto > 0 && formValido"
-            variant="flat" 
-            color="success-lighten-5"
-            class="mb-4"
-            density="compact"
-          >
+      <v-row>
+        <!-- Columna izquierda: Resumen -->
+        <v-col cols="12" md="5">
+          <!-- Resumen compacto -->
+          <v-card variant="tonal" color="primary" class="mb-3" density="compact">
             <v-card-text class="pa-3">
+              <div class="d-flex justify-space-between align-center mb-2">
+                <span class="text-caption text-grey">Cliente:</span>
+                <span class="text-body-2 font-weight-medium">{{ orden.cliente_nombre || 'CF' }}</span>
+              </div>
+              <v-divider class="my-2" />
               <div class="d-flex justify-space-between align-center mb-1">
-                <span class="text-caption">Monto a abonar:</span>
-                <span class="font-weight-bold text-success">Q {{ formatMoney(monto) }}</span>
+                <span class="text-caption text-grey">Total:</span>
+                <span class="text-body-1 font-weight-bold">Q {{ formatMoney(orden.total) }}</span>
               </div>
+              <div class="d-flex justify-space-between align-center mb-1">
+                <span class="text-caption text-grey">Pagado:</span>
+                <span class="text-body-2 text-success">Q {{ formatMoney(orden.abonado || 0) }}</span>
+              </div>
+              <v-divider class="my-2" />
               <div class="d-flex justify-space-between align-center">
-                <span class="text-caption">Saldo restante:</span>
-                <span class="font-weight-bold" :class="saldoRestante <= 0 ? 'text-success' : 'text-warning'">
-                  Q {{ formatMoney(saldoRestante) }}
-                </span>
-              </div>
-              <div v-if="saldoRestante <= 0" class="text-center mt-2">
-                <v-chip color="success" size="small" variant="flat">
-                  <v-icon start size="small">mdi-check-circle</v-icon>
-                  ¡Orden completamente pagada!
-                </v-chip>
+                <span class="text-body-2 font-weight-medium">Pendiente:</span>
+                <span class="text-h6 font-weight-bold text-primary">Q {{ formatMoney(saldoPendiente) }}</span>
               </div>
             </v-card-text>
           </v-card>
-        </v-expand-transition>
 
-        <!-- Botones -->
-        <v-row dense>
-          <v-col cols="12" sm="8">
-            <v-btn
-              type="submit"
-              color="primary"
-              block
-              :disabled="!formularioCompleto"
-              :loading="cargando"
+          <!-- Resumen del pago (cuando aplique) -->
+          <v-expand-transition>
+            <v-card 
+              v-if="monto > 0"
+              variant="flat" 
+              color="grey-lighten-5"
+              class="mb-3"
+              density="compact"
             >
-              <v-icon start size="small">mdi-check-circle</v-icon>
-              Registrar Abono
-            </v-btn>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-btn
+              <v-card-text class="pa-3">
+                <div class="d-flex justify-space-between align-center mb-1">
+                  <span class="text-caption">A pagar:</span>
+                  <span class="font-weight-bold">Q {{ formatMoney(monto) }}</span>
+                </div>
+                <div v-if="tipoPago === efectivoId && efectivoRecibido > monto" class="d-flex justify-space-between align-center text-success mb-1">
+                  <span class="text-caption">Cambio:</span>
+                  <span class="font-weight-bold">Q {{ formatMoney(cambio) }}</span>
+                </div>
+                <div v-if="tipoPagoSeleccionado === 'parcial'" class="d-flex justify-space-between align-center text-warning">
+                  <span class="text-caption">Nuevo saldo:</span>
+                  <span class="font-weight-bold">Q {{ formatMoney(saldoRestante) }}</span>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-expand-transition>
+        </v-col>
+
+        <!-- Columna derecha: Formulario -->
+        <v-col cols="12" md="7">
+          <v-form ref="form" v-model="formValido" @submit.prevent="registrarAbono">
+            <!-- Tipo de pago en fila -->
+            <div class="mb-3">
+              <div class="text-body-2 font-weight-medium mb-2">Tipo de pago</div>
+              <v-chip-group
+                v-model="tipoPagoChip"
+                mandatory
+                selected-class="text-primary"
+                @update:model-value="actualizarTipoPago"
+              >
+                <v-chip value="completo" size="small" variant="outlined">
+                  Completo
+                </v-chip>
+                <v-chip value="parcial" size="small" variant="outlined">
+                  Parcial
+                </v-chip>
+              </v-chip-group>
+            </div>
+
+            <!-- Fila de campos principales -->
+            <v-row dense class="mb-2">
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="tipoPago"
+                  :items="tiposDePago"
+                  item-title="nombre"
+                  item-value="id"
+                  label="Método"
+                  variant="outlined"
+                  density="compact"
+                  prepend-inner-icon="mdi-credit-card"
+                  :rules="[reglasRequerido]"
+                  required
+                />
+              </v-col>
+              
+              <!-- Monto (parcial) o Efectivo recibido -->
+              <v-col cols="12" sm="6">
+                <v-slide-y-transition>
+                  <v-text-field
+                    v-if="tipoPagoSeleccionado === 'parcial'"
+                    v-model.number="monto"
+                    label="Monto abono"
+                    type="number"
+                    step="0.01"
+                    variant="outlined"
+                    density="compact"
+                    prefix="Q"
+                    prepend-inner-icon="mdi-cash"
+                    :rules="reglasValidacionMonto"
+                    @input="validarMonto"
+                    required
+                  />
+                  <v-text-field
+                    v-else-if="tipoPago === efectivoId"
+                    v-model.number="efectivoRecibido"
+                    label="Efectivo recibido"
+                    type="number"
+                    step="0.01"
+                    variant="outlined"
+                    density="compact"
+                    prefix="Q"
+                    prepend-inner-icon="mdi-cash-100"
+                    :rules="reglasValidacionEfectivo"
+                    required
+                  />
+                </v-slide-y-transition>
+              </v-col>
+            </v-row>
+
+            <!-- Número de documento (cuando aplique) -->
+            <v-slide-y-transition>
+              <v-text-field
+                v-if="requiereNumeroRecibo"
+                v-model="numeroRecibo"
+                :label="etiquetaDocumento"
+                variant="outlined"
+                density="compact"
+                prepend-inner-icon="mdi-file-document"
+                :rules="reglasNumeroRecibo"
+                class="mb-2"
+                required
+              />
+            </v-slide-y-transition>
+
+            <!-- Observaciones compactas -->
+            <v-textarea
+              v-model="observacion"
+              label="Observaciones"
               variant="outlined"
-              block
-              @click="cancelar"
-              :disabled="cargando"
-            >
-              Cancelar
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-form>
+              density="compact"
+              rows="2"
+              prepend-inner-icon="mdi-note-text"
+              class="mb-3"
+            />
+
+            <!-- Botones compactos con iconos -->
+            <v-row dense>
+              <v-col cols="12" sm="6">
+                <v-tooltip text="Registrar abono" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      type="submit"
+                      color="primary"
+                      block
+                      :loading="cargando"
+                      :disabled="!formularioCompleto"
+                      size="large"
+                    >
+                      <v-icon size="28">mdi-check-circle</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-tooltip text="Cancelar" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      variant="outlined"
+                      block
+                      @click="cancelar"
+                      :disabled="cargando"
+                      size="large"
+                    >
+                      <v-icon size="28">mdi-close-circle</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-col>
+      </v-row>
     </v-card>
 
     <!-- Snackbar para notificaciones -->
@@ -173,6 +223,10 @@
 </template>
 
 <script>
+import abonosService from '@/services/abonos.service'
+import ordenesService from '@/services/ordenes.service'
+import { printerService } from '@/services/printer.service'
+
 export default {
   name: 'ComponenteAbono',
   props: {
@@ -215,6 +269,10 @@ export default {
       formValido: false,
       cargando: false,
       
+      // Control de tipo de pago
+      tipoPagoChip: 'completo',
+      efectivoRecibido: null,
+      
       // Notificaciones internas
       mostrarNotificacion: false,
       notificacion: {
@@ -225,14 +283,53 @@ export default {
   },
 
   computed: {
+    // Saldo pendiente actual
+    saldoPendiente() {
+      return parseFloat(this.orden.saldo_pendiente) || 0;
+    },
+
     // Obtener el tipo de pago seleccionado
     tipoPagoSeleccionado() {
-      return this.tiposDePago.find(tipo => tipo.id === this.tipoPago);
+      if (this.tipoPagoChip === 'completo') {
+        return 'completo';
+      }
+      return 'parcial';
     },
     
     // Nombre del tipo de pago seleccionado
     tipoPagoNombre() {
-      return this.tipoPagoSeleccionado?.nombre?.toLowerCase() || '';
+      const tipo = this.tiposDePago.find(t => t.id === this.tipoPago);
+      return tipo?.nombre?.toLowerCase() || '';
+    },
+    
+    // Cambio en efectivo
+    cambio() {
+      if (this.tipoPago !== this.efectivoId || !this.efectivoRecibido) {
+        return 0;
+      }
+      const recibido = parseFloat(this.efectivoRecibido) || 0;
+      const monto = parseFloat(this.monto) || 0;
+      return Math.max(0, recibido - monto);
+    },
+
+    // Etiqueta del documento según tipo de pago
+    etiquetaDocumento() {
+      const tipoPago = this.tipoPagoNombre;
+      if (tipoPago.includes('transferencia')) return 'Número de transferencia';
+      if (tipoPago.includes('tc') || tipoPago.includes('tarjeta')) return 'Número de autorización';
+      if (tipoPago.includes('cheque')) return 'Número de cheque';
+      if (tipoPago.includes('móvil')) return 'Número de referencia';
+      return 'Número de comprobante';
+    },
+
+    // Texto del botón según tipo de pago
+    textoBoton() {
+      return this.tipoPagoSeleccionado === 'completo' ? 'Pagar Total' : 'Registrar Abono';
+    },
+
+    // Regla de validación requerido
+    reglasRequerido() {
+      return v => !!v || 'Este campo es requerido';
     },
     
     // Verificar si requiere número de recibo
@@ -269,11 +366,20 @@ export default {
 
     // Reglas de validación para el monto
     reglasValidacionMonto() {
-      const saldoPendiente = parseFloat(this.orden.saldo_pendiente) || 0;
+      const saldoPendiente = this.saldoPendiente;
       return [
         v => !!v || 'Ingrese el monto del abono',
         v => v > 0 || 'El monto debe ser mayor a 0',
         v => v <= saldoPendiente || `No puede superar Q ${this.formatMoney(saldoPendiente)}`
+      ];
+    },
+
+    // Reglas de validación para efectivo recibido
+    reglasValidacionEfectivo() {
+      const monto = parseFloat(this.monto) || 0;
+      return [
+        v => !!v || 'Ingrese el efectivo recibido',
+        v => v >= monto || 'El efectivo debe ser mayor o igual al monto'
       ];
     },
 
@@ -286,9 +392,16 @@ export default {
 
     // Validación completa del formulario
     formularioCompleto() {
-      const montoValido = this.monto > 0 && this.monto <= this.orden.saldo_pendiente;
-      const reciboValido = !this.requiereNumeroRecibo || !!this.numeroRecibo?.trim();
-      return this.formValido && montoValido && reciboValido;
+      if (this.tipoPagoSeleccionado === 'completo') {
+        const montoValido = this.monto > 0;
+        const efectivoValido = this.tipoPago !== this.efectivoId || (this.efectivoRecibido >= this.monto);
+        const reciboValido = !this.requiereNumeroRecibo || !!this.numeroRecibo?.trim();
+        return this.formValido && montoValido && efectivoValido && reciboValido;
+      } else {
+        const montoValido = this.monto > 0 && this.monto <= this.saldoPendiente;
+        const reciboValido = !this.requiereNumeroRecibo || !!this.numeroRecibo?.trim();
+        return this.formValido && montoValido && reciboValido;
+      }
     }
   },
 
@@ -312,6 +425,18 @@ export default {
   },
 
   methods: {
+    // Actualizar tipo de pago (completo/parcial)
+    actualizarTipoPago() {
+      if (this.tipoPagoSeleccionado === 'completo') {
+        // Completo: 100% del saldo pendiente
+        this.monto = this.saldoPendiente;
+      } else {
+        // Parcial: 50% del saldo pendiente
+        this.monto = Math.round(this.saldoPendiente * 0.5 * 100) / 100;
+      }
+      this.efectivoRecibido = null;
+    },
+
     formatMoney(valor) {
       const numero = parseFloat(valor);
       return isNaN(numero) ? '0.00' : numero.toFixed(2);
@@ -358,36 +483,64 @@ export default {
 
         console.log('Payload a enviar:', payload);
         
-        // Realizar la solicitud POST para registrar el abono
-        const res = await fetch(`${process.env.VUE_APP_API_URL}/abonos/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        // Registrar abono usando el servicio
+        const data = await abonosService.registrarAbono(payload);
         
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Error al registrar abono');
+        // Obtener orden actualizada desde el servidor
+        const ordenActualizada = await ordenesService.getById(this.orden.id);
 
         this.mostrarMensaje('success', 'Abono registrado exitosamente');
         
-        // Emitir evento con información completa
+        // Abrir cajón de dinero si el método de pago es efectivo
+        if (this.tipoPago === this.efectivoId) {
+          try {
+            console.log('Abriendo cajón de dinero...');
+            await printerService.abrirCajon();
+            console.log('Cajón abierto exitosamente');
+          } catch (errorCajon) {
+            console.warn('No se pudo abrir el cajón:', errorCajon.message);
+            // No detenemos el flujo si falla el cajón
+          }
+        }
+        
+        // Calcular cambio si es efectivo
+        const cambio = this.tipoPago === this.efectivoId && this.efectivoRecibido > this.monto
+          ? this.efectivoRecibido - this.monto
+          : 0;
+        
+        // Emitir evento con información completa incluyendo orden actualizada
         this.$emit('abono-registrado', {
-          abono: data,
+          abono: data.data,
+          ordenActualizada: ordenActualizada,
           monto: parseFloat(this.monto),
-          tipoPago: this.tipoPagoSeleccionado?.nombre,
-          saldoRestante: this.saldoRestante,
-          ordenCompletada: this.saldoRestante <= 0
+          cambio: cambio,
+          efectivoRecibido: this.efectivoRecibido || null,
+          tipoPago: this.tiposDePago.find(t => t.id === this.tipoPago)?.nombre || 'Desconocido',
+          tipoPagoId: this.tipoPago,
+          estadoPago: data.estado_pago,
+          abonado: data.abonado,
+          saldoPendiente: data.saldo_pendiente,
+          ordenCompletada: data.estado_pago === 'pagado',
+          numeroRecibo: this.numeroRecibo || null
         });
 
         // Emitir para compatibilidad con el sistema existente
+        const mensajeEstado = data.estado_pago === 'pagado' 
+          ? 'Pago completado exitosamente' 
+          : data.estado_pago === 'parcial'
+            ? 'Abono parcial registrado exitosamente'
+            : 'Abono registrado exitosamente';
+        
         this.$emit('snackbar', {
-          text: 'Abono registrado exitosamente',
+          text: mensajeEstado,
           color: 'success'
         });
         
-        // Limpiar formulario y terminar
+        // Limpiar formulario
+        this.resetForm();
+        
+        // Finalizar siempre (tanto en completo como en parcial)
         setTimeout(() => {
-          this.resetForm();
           this.$emit('terminar');
         }, 1500);
 
@@ -424,10 +577,14 @@ export default {
   },
 
   mounted() {
-  
     // Inicializar tipo de pago por defecto
     if (this.tiposDePago?.length > 0) {
       this.tipoPago = this.efectivoId;
+    }
+
+    // Si es pago completo, inicializar con saldo pendiente
+    if (this.tipoPagoChip === 'completo') {
+      this.monto = this.saldoPendiente;
     }
   }
 };

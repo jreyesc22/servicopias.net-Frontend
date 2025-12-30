@@ -4,6 +4,7 @@
 
 <script>
 import { generarTicket } from '@/utils/ticketTemplate.js'
+import { printerService } from '@/services/printer.service.js'
 
 export default {
   name: "TicketPrinter",
@@ -32,6 +33,14 @@ export default {
     servidorImpresion: {
       type: String,
       default: 'http://192.168.1.15:3005'
+    },
+    abrirCajon: {
+      type: Boolean,
+      default: true
+    },
+    cortarPapel: {
+      type: Boolean,
+      default: true
     }
   },
   emits: [
@@ -44,28 +53,9 @@ export default {
     }
   },
   methods: {
-    // Función helper para validar conectividad
-    async validarConectividad() {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const response = await fetch(this.servidorImpresion, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: 'TEST',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        return response.status !== 0;
-        
-      } catch (error) {
-        console.warn('TicketPrinter: Servidor no disponible:', error.message);
-        return false;
-      }
-    },
-
+    /**
+     * Imprimir ticket usando el servicio centralizado
+     */
     async imprimir() {
       console.log('TicketPrinter: Iniciando impresión orden', this.orden.id);
       
@@ -77,34 +67,34 @@ export default {
       this.imprimiendo = true;
 
       try {
-        // Validar conectividad
-        const conectividadOk = await this.validarConectividad();
-        if (!conectividadOk) {
-          throw new Error('Servidor de impresión no disponible. Verifique la conexión.');
-        }
+        // Generar ticket usando la plantilla
+        const textoTicket = generarTicket(this.orden, this.pago);
+        console.log('TicketPrinter: Ticket generado, longitud:', textoTicket.length);
 
-        // Generar ticket
-        const texto = generarTicket(this.orden, this.pago);
-        console.log('TicketPrinter: Ticket generado, longitud:', texto.length);
-
-        // Enviar a impresora
-        const response = await fetch(this.servidorImpresion, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: texto
+        // Configurar el servicio con la URL proporcionada
+        printerService.configurar({ 
+          servidorUrl: this.servidorImpresion 
         });
 
-        if (!response.ok) {
-          throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-        }
-
-        console.log('TicketPrinter: Ticket enviado exitosamente');
-        
-        // Emitir evento de éxito
-        this.$emit('impresion-exitosa', {
-          orden_id: this.orden.id,
-          timestamp: new Date().toISOString()
+        // Imprimir usando el servicio (sin agregar comandos extra, ya están en generarTicket)
+        const resultado = await printerService.imprimirRaw(textoTicket, {
+          validarConexion: true,
+          abrirCajon: false, // Ya incluido en el ticket
+          cortar: false      // Ya incluido en el ticket
         });
+
+        if (resultado.success) {
+          console.log('TicketPrinter: Ticket enviado exitosamente');
+          
+          // Emitir evento de éxito
+          this.$emit('impresion-exitosa', {
+            orden_id: this.orden.id,
+            timestamp: resultado.timestamp,
+            intentos: resultado.intentos
+          });
+        } else {
+          throw new Error(resultado.error || 'Error desconocido');
+        }
 
       } catch (error) {
         console.error('TicketPrinter: Error al imprimir:', error.message);
@@ -123,18 +113,32 @@ export default {
       }
     },
 
-    // Método público para reimprimir
+    /**
+     * Método público para reimprimir
+     */
     async reimprimir() {
       console.log('TicketPrinter: Iniciando reimpresión');
       return await this.imprimir();
     },
 
-    // Método público para obtener estado
+    /**
+     * Método público para obtener estado
+     */
     getEstado() {
       return {
         imprimiendo: this.imprimiendo,
-        servidorDisponible: this.validarConectividad()
+        servicio: printerService.getEstado()
       };
+    },
+
+    /**
+     * Método para validar conectividad (expuesto para uso externo)
+     */
+    async validarConectividad() {
+      printerService.configurar({ 
+        servidorUrl: this.servidorImpresion 
+      });
+      return await printerService.validarConectividad();
     }
   },
 
@@ -144,6 +148,11 @@ export default {
       console.error('TicketPrinter: Prop "orden" es requerida');
       return;
     }
+
+    // Configurar el servicio con la URL proporcionada
+    printerService.configurar({ 
+      servidorUrl: this.servidorImpresion 
+    });
 
     console.log('TicketPrinter: Componente montado - Orden:', this.orden.id);
   }

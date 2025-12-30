@@ -1,3 +1,8 @@
+/**
+ * Plantillas de tickets para impresión y mensajería
+ * Este módulo contiene SOLO la generación de texto, sin comandos de impresora
+ */
+
 // Función helper para formatear números de forma segura
 export function formatearNumero(valor) {
   const numero = parseFloat(valor);
@@ -18,8 +23,13 @@ export function obtenerFormaPago(orden, pago) {
   return 'Efectivo';
 }
 
-// Función principal para generar el ticket
-export function generarTicket(orden, pago = null) {
+/**
+ * Generar contenido del ticket (SOLO TEXTO, sin comandos ESC/POS)
+ * @param {Object} orden - Datos de la orden
+ * @param {Object} pago - Datos del pago (opcional)
+ * @returns {string} Texto del ticket
+ */
+export function generarContenidoTicket(orden, pago = null) {
   try {
     // Validar datos esenciales
     if (!orden || !orden.items || !Array.isArray(orden.items)) {
@@ -79,18 +89,32 @@ Cambio:         Q ${formatearNumero(vuelto)}
   8 Ave. 7-25, Zona 1, Salamá B.V
   Tel: 5188-6437 | www.servicopias.net
 
-\n \n
 `;
-    // Comandos ESC/POS (solo para impresión)
-    ticket += '\x1B\x70\x00\x19\xFA'; // abrir cajón de dinero
-    ticket += '\x1D\x56\x00'; // comando de corte
-
+    
     return ticket;
 
   } catch (error) {
-    console.error('Error generando ticket:', error);
+    console.error('Error generando contenido ticket:', error);
     throw new Error(`Error al generar ticket: ${error.message}`);
   }
+}
+
+/**
+ * Generar ticket COMPLETO para impresión (con comandos ESC/POS)
+ * Esta función es un wrapper para mantener compatibilidad con código existente
+ * @param {Object} orden - Datos de la orden
+ * @param {Object} pago - Datos del pago (opcional)
+ * @returns {string} Ticket completo con comandos
+ */
+export function generarTicket(orden, pago = null) {
+  // Importar comandos dinámicamente para evitar dependencia circular
+  const contenido = generarContenidoTicket(orden, pago);
+  
+  // Agregar comandos ESC/POS al final para compatibilidad con código existente
+  // NOTA: En el futuro, estos comandos deberían agregarse en el servicio de impresión
+  const comandosFinales = '\x1B\x70\x00\x19\xFA\x1D\x56\x00'; // abrir cajón + cortar
+  
+  return contenido + comandosFinales;
 }
 
 // Función para generar mensaje de WhatsApp (sin comandos ESC/POS)

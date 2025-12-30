@@ -4,130 +4,337 @@
 
     <!-- Filtros -->
     <v-row class="mb-4" dense>
-      <v-col cols="12" md="3">
-        <v-text-field
-          v-model="filtroCliente"
-          label="Buscar por cliente"
-          prepend-inner-icon="mdi-magnify"
-          clearable
+      <!-- Selector de tipo de búsqueda -->
+      <v-col cols="12" md="2">
+        <v-select
+          v-model="filtros.tipo"
+          :items="tiposBusqueda"
+          label="Buscar por"
+          density="compact"
+          variant="outlined"
         />
       </v-col>
-      <v-col cols="12" md="3">
+
+      <!-- Filtro por ID -->
+      <v-col v-if="filtros.tipo === 'id'" cols="12" md="3">
         <v-text-field
-          v-model="filtroFecha"
-          label="Filtrar por fecha"
+          v-model="filtros.id"
+          label="ID de Orden"
+          type="number"
+          prepend-inner-icon="mdi-pound"
+          clearable
+          density="compact"
+          variant="outlined"
+        />
+      </v-col>
+
+      <!-- Filtros por cliente -->
+      <template v-if="filtros.tipo === 'cliente'">
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model="filtros.cliente_nombre"
+            label="Nombre del cliente"
+            prepend-inner-icon="mdi-account"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model="filtros.cliente_nit"
+            label="NIT del cliente"
+            prepend-inner-icon="mdi-card-account-details"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+      </template>
+
+      <!-- Filtro por fecha única -->
+      <v-col v-if="filtros.tipo === 'fecha'" cols="12" md="3">
+        <v-text-field
+          v-model="filtros.fecha"
+          label="Fecha"
           type="date"
           clearable
+          density="compact"
+          variant="outlined"
         />
       </v-col>
-      <v-col cols="12" md="3">
-        <v-select
-          v-model="filtroEstado"
-          :items="estadosDisponibles"
-          label="Filtrar por estado"
-          clearable
-          prepend-inner-icon="mdi-filter"
-        />
-      </v-col>
-      <v-col cols="12" md="3" class="d-flex align-center">
-        <v-btn @click="filtrarOrdenes" color="primary" class="mr-2">Filtrar</v-btn>
-        <v-btn @click="limpiarFiltros" color="grey">Limpiar</v-btn>
+
+      <!-- Filtros por rango de fechas -->
+      <template v-if="filtros.tipo === 'rango'">
+        <v-col cols="12" md="2">
+          <v-text-field
+            v-model="filtros.fechaInicio"
+            label="Fecha Inicio"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" md="2">
+          <v-text-field
+            v-model="filtros.fechaFin"
+            label="Fecha Fin"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" md="2">
+          <v-select
+            v-model="filtros.estado"
+            :items="estadosDisponibles"
+            label="Estado"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" md="2">
+          <v-select
+            v-model="filtros.estadoPago"
+            :items="estadosPagoDisponibles"
+            label="Estado Pago"
+            clearable
+            density="compact"
+            variant="outlined"
+          />
+        </v-col>
+      </template>
+
+      <!-- Botones de acción -->
+      <v-col cols="12" md="2" class="d-flex align-center gap-2">
+        <v-btn 
+          @click="aplicarFiltros" 
+          color="primary" 
+          :loading="loading"
+          :disabled="loading"
+        >
+          <v-icon start>mdi-magnify</v-icon>
+          Buscar
+        </v-btn>
+        <v-btn 
+          @click="limpiarFiltros" 
+          color="grey" 
+          variant="outlined"
+          :disabled="loading"
+        >
+          <v-icon start>mdi-close</v-icon>
+          Limpiar
+        </v-btn>
       </v-col>
     </v-row>
+
+    <!-- Alerta de error -->
+    <v-alert
+      v-if="error"
+      type="error"
+      variant="tonal"
+      closable
+      @click:close="limpiarError"
+      class="mb-4"
+    >
+      {{ error }}
+    </v-alert>
 
     <!-- Información de resultados -->
     <v-row class="mb-2">
       <v-col cols="12" class="d-flex justify-space-between align-center">
         <div class="text-body-2 text-grey-darken-1">
-          Mostrando {{ ordenesParaPaginar.length }} de {{ ordenesFiltradas.length }} resultados
+          <template v-if="ultimaBusqueda && ultimaBusqueda.tipo !== 'todos'">
+            <v-chip size="small" color="primary" variant="tonal" class="mr-2">
+              <v-icon start size="small">mdi-filter</v-icon>
+              Resultados filtrados
+            </v-chip>
+            Mostrando {{ resultados.length }} de {{ totalResultados }} (Página {{ paginacion.page }} de {{ paginacion.totalPages }})
+          </template>
+          <template v-else>
+            Mostrando {{ resultados.length }} de {{ totalResultados }} órdenes (Página {{ paginacion.page }} de {{ paginacion.totalPages }})
+          </template>
         </div>
         <v-select
-          v-model="itemsPorPagina"
+          v-model="itemsPorPaginaLocal"
           :items="[10, 25, 50, 100]"
-          label="Elementos por página"
+          label="Por página"
           variant="outlined"
           density="compact"
-          style="max-width: 200px;"
+          style="max-width: 150px;"
         />
       </v-col>
     </v-row>
 
     <!-- Tabla -->
     <v-responsive class="overflow-auto">
-      <v-table class="elevation-1 min-width-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Cliente</th>
-            <th>Teléfono</th>
-            <th>NIT</th>
-            <th>Fecha Orden</th>
-            <th>Fecha Entrega</th>
-            <th>Total</th>
-            <th>Estado</th>
-            <th>Estado de Pago</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="orden in ordenesParaPaginar" :key="orden.id">
-            <td>{{ orden.id }}</td>
-            <td>{{ orden.cliente_nombre }}</td>
-            <td>{{ orden.cliente_telefono }}</td>
-            <td>{{ orden.cliente_nit }}</td>
-            <td>{{ orden.fecha ? new Date(orden.fecha).toLocaleString() : '-' }}</td>
-            <td>
-              <span v-if="orden.fecha_entrega">
-                {{ new Date(orden.fecha_entrega).toLocaleDateString() }}
-              </span>
-              <span v-else class="text-grey">Sin fecha</span>
-            </td>
-            <td>Q {{ orden.total != null ? Number(orden.total).toFixed(2) : '0.00' }}</td>
-            <td>
-              <v-chip :color="estadoColor(orden.estado)" text-color="white" small>
-                {{ orden.estado }}
-              </v-chip>
-            </td>
-            <td>
-              <v-chip
-                :color="orden.estado_pago === 'pagado'
-                  ? 'green'
-                  : orden.estado_pago === 'parcial'
-                  ? 'orange'
-                  : 'grey'"
-                text-color="white"
-                small
-              >
-                {{ orden.estado_pago }}
-              </v-chip>
-            </td>
-            <td>
-              <v-btn size="small" color="primary" @click="verDetalle(orden)" class="mr-1">
-                VER
-              </v-btn>
-              <v-btn
-                v-if="orden.estado_pago !== 'pagado' && orden.estado !== 'cancelado'"
-                size="small"
-                color="warning"
-                @click="abrirAbonar(orden)"
-              >
-                ABONAR
-              </v-btn>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+      <v-data-table
+        :headers="headers"
+        :items="resultados"
+        :loading="loading"
+        :items-per-page="itemsPorPaginaLocal"
+        class="elevation-2"
+        loading-text="Cargando órdenes..."
+        no-data-text="No se encontraron órdenes"
+        hover
+      >
+        <!-- ID con badge -->
+        <template #item.id="{ item }">
+          <v-badge
+            :content="item.id"
+            color="primary"
+            inline
+          >
+            <v-avatar size="36" color="grey-lighten-3">
+              <v-icon>mdi-receipt-text</v-icon>
+            </v-avatar>
+          </v-badge>
+        </template>
+
+        <!-- Cliente con teléfono -->
+        <template #item.cliente="{ item }">
+          <div class="cliente-info">
+            <div class="text-subtitle-1 font-weight-medium">{{ item.cliente_nombre }}</div>
+            <div class="text-caption text-grey d-flex align-center">
+              <v-icon size="14" class="mr-1">mdi-phone</v-icon>
+              {{ item.cliente_telefono }}
+            </div>
+          </div>
+        </template>
+
+        <!-- NIT -->
+        <template #item.nit="{ item }">
+          <div class="text-body-2">{{ item.cliente_nit }}</div>
+        </template>
+
+        <!-- Fechas -->
+        <template #item.fechaOrden="{ item }">
+          <div class="fecha-info">
+            <div class="text-body-2">
+              {{ item.fecha ? new Date(item.fecha).toLocaleDateString() : '-' }}
+            </div>
+            <div class="text-caption text-grey">
+              {{ item.fecha ? new Date(item.fecha).toLocaleTimeString() : '' }}
+            </div>
+          </div>
+        </template>
+
+        <template #item.fechaEntrega="{ item }">
+          <div v-if="item.fecha_entrega" class="text-body-2">
+            {{ new Date(item.fecha_entrega).toLocaleDateString() }}
+          </div>
+          <span v-else class="text-grey text-caption">Sin fecha</span>
+        </template>
+
+        <!-- Total -->
+        <template #item.total="{ item }">
+          <div class="text-h6 font-weight-bold">
+            Q {{ item.total != null ? Number(item.total).toFixed(2) : '0.00' }}
+          </div>
+        </template>
+
+        <!-- Estado -->
+        <template #item.estado="{ item }">
+          <v-chip
+            :color="estadoColor(item.estado)"
+            size="default"
+            variant="elevated"
+          >
+            <v-icon start size="18">{{ estadoIcono(item.estado) }}</v-icon>
+            {{ item.estado }}
+          </v-chip>
+        </template>
+
+        <!-- Estado de Pago -->
+        <template #item.estadoPago="{ item }">
+          <v-chip
+            :color="item.estado_pago === 'pagado' ? 'success' : item.estado_pago === 'parcial' ? 'warning' : 'grey'"
+            size="default"
+            variant="elevated"
+          >
+            <v-icon start size="18">{{ estadoPagoIcono(item.estado_pago) }}</v-icon>
+            {{ item.estado_pago }}
+          </v-chip>
+        </template>
+
+        <!-- Acciones -->
+        <template #item.acciones="{ item }">
+          <div class="d-flex gap-1">
+            <!-- Ver Detalle -->
+            <v-tooltip text="Ver Detalle" location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  color="info"
+                  variant="tonal"
+                  size="large"
+                  @click="verDetalle(item)"
+                  class="action-icon-btn"
+                >
+                  <v-icon size="24">mdi-format-list-bulleted</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+
+            <!-- Abonar -->
+            <v-tooltip 
+              v-if="item.estado_pago !== 'pagado' && item.estado !== 'cancelado'"
+              text="Abonar Pago" 
+              location="top"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  color="warning"
+                  variant="tonal"
+                  size="large"
+                  @click="abrirAbonar(item)"
+                  class="action-icon-btn"
+                >
+                  <v-icon size="24">mdi-cash-plus</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+
+            <!-- Entregar Orden -->
+            <v-tooltip 
+              v-if="item.estado === 'finalizado'"
+              text="Entregar Orden" 
+              location="top"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  icon
+                  color="success"
+                  variant="tonal"
+                  size="large"
+                  @click="entregarOrden(item)"
+                  class="action-icon-btn"
+                >
+                  <v-icon size="24">mdi-truck-check</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
+        </template>
+      </v-data-table>
     </v-responsive>
 
     <!-- Paginación -->
-    <v-row class="mt-4">
+    <v-row class="mt-4" v-if="paginacion.totalPages > 1">
       <v-col cols="12" class="d-flex justify-center">
         <v-pagination
-          v-model="paginaActual"
-          :length="totalPaginas"
+          :model-value="paginacion.page"
+          :length="paginacion.totalPages"
           :total-visible="7"
           color="primary"
-          @update:model-value="cambiarPagina"
+          @update:model-value="cambiarPaginaLocal"
         />
       </v-col>
     </v-row>
@@ -175,6 +382,7 @@
             :orden="ordenSeleccionada"
             :tipos-de-pago="tiposDePago"
             :empleado-id="empleadoId"
+            @abono-registrado="manejarAbonoRegistrado"
             @terminar="cerrarAbono"
             @snackbar="mostrarSnackbar" 
           />
@@ -209,24 +417,54 @@
 </template>
 
 <script>
+
 import OrdenDetalle from './OrdenDetalle.vue'
 import AbonarOrden from '../caja/AbonarOrden.vue'
 import AuthService from '@/services/auth.service'
+import { useBusquedaOrdenes } from '@/components/composables/useBusquedaOrdenes'
+
 
 export default {
   name: 'ListaOrdenes',
   components: { OrdenDetalle, AbonarOrden },
+  setup() {
+    const {
+      loading,
+      error,
+      resultados,
+      filtros,
+      paginacion,
+      ultimaBusqueda,
+      totalResultados,
+      ejecutarBusqueda,
+      cargarTodas,
+      cambiarPagina,
+      cambiarLimite,
+      limpiarBusqueda,
+      limpiarError
+    } = useBusquedaOrdenes()
+
+    return {
+      loading,
+      error,
+      resultados,
+      filtros,
+      paginacion,
+      ultimaBusqueda,
+      totalResultados,
+      ejecutarBusqueda,
+      cargarTodas,
+      cambiarPagina,
+      cambiarLimite,
+      limpiarBusqueda,
+      limpiarError
+    }
+  },
   data() {
     return {
-      ordenes: [],
-      ordenesFiltradas: [],
       ordenSeleccionada: null,
       dialogDetalle: false,
       dialogAbonar: false,
-      filtroCliente: '',
-      filtroFecha: '',
-      filtroEstado: null,
-      loading: false,
       pagosCaja: [],
       tiposDePago: [],
       empleadoId: null,
@@ -235,9 +473,47 @@ export default {
       generandoPDF: false,
       componenteDetalleReady: false,
 
-      // Paginación
-      paginaActual: 1,
-      itemsPorPagina: 25,
+      // Items por página local (para sincronizar con el composable)
+      itemsPorPaginaLocal: 10,
+
+      // Headers de la tabla
+      headers: [
+        { title: '#', key: 'id', sortable: true, width: '100px' },
+        { title: 'Cliente', key: 'cliente', sortable: true },
+        { title: 'NIT', key: 'nit', sortable: false, width: '120px' },
+        { title: 'Fecha Orden', key: 'fechaOrden', sortable: true, width: '140px' },
+        { title: 'Fecha Entrega', key: 'fechaEntrega', sortable: true, width: '120px' },
+        { title: 'Total', key: 'total', sortable: true, width: '120px' },
+        { title: 'Estado', key: 'estado', sortable: true, width: '180px' },
+        { title: 'Estado Pago', key: 'estadoPago', sortable: true, width: '150px' },
+        { title: 'Acciones', key: 'acciones', sortable: false, width: '150px' }
+      ],
+
+      // Tipos de búsqueda disponibles
+      tiposBusqueda: [
+        { title: 'Todas las órdenes', value: 'todos' },
+        { title: 'Buscar por ID', value: 'id' },
+        { title: 'Buscar por Cliente', value: 'cliente' },
+        { title: 'Buscar por Fecha', value: 'fecha' },
+        { title: 'Rango de Fechas', value: 'rango' }
+      ],
+
+      // Estados disponibles
+      estadosDisponibles: [
+        'pendiente',
+        'en proceso',
+        'en produccion',
+        'finalizado',
+        'entregado',
+        'cancelado'
+      ],
+
+      // Estados de pago disponibles
+      estadosPagoDisponibles: [
+        'pendiente',
+        'parcial',
+        'pagado'
+      ],
 
       // Snackbar para mensajes de estado
       snackbar: {
@@ -247,28 +523,24 @@ export default {
       }
     }
   },
-  computed: {
-    estadosDisponibles() {
-      // Obtener todos los estados únicos de las órdenes
-      const estados = [...new Set(this.ordenes.map(orden => orden.estado).filter(estado => estado))]
-      return estados.sort()
-    },
-    totalPaginas() {
-      return Math.ceil(this.ordenesFiltradas.length / this.itemsPorPagina)
-    },
-    ordenesParaPaginar() {
-      const inicio = (this.paginaActual - 1) * this.itemsPorPagina
-      const fin = inicio + this.itemsPorPagina
-      return this.ordenesFiltradas.slice(inicio, fin)
-    }
-  },
   watch: {
-    itemsPorPagina() {
-      this.paginaActual = 1
+    itemsPorPaginaLocal(newVal) {
+      this.cambiarLimite(newVal)
     },
-    ordenesFiltradas() {
-      // Resetear a la primera página cuando cambian los filtros
-      this.paginaActual = 1
+    'filtros.tipo'(newVal) {
+      // Limpiar campos no necesarios al cambiar tipo de búsqueda
+      if (newVal !== 'id') this.filtros.id = ''
+      if (newVal !== 'cliente') {
+        this.filtros.cliente_nombre = ''
+        this.filtros.cliente_nit = ''
+      }
+      if (newVal !== 'fecha') this.filtros.fecha = ''
+      if (newVal !== 'rango') {
+        this.filtros.fechaInicio = ''
+        this.filtros.fechaFin = ''
+        this.filtros.estado = null
+        this.filtros.estadoPago = null
+      }
     },
     dialogDetalle(newVal) {
       if (!newVal) {
@@ -278,8 +550,9 @@ export default {
       }
     }
   },
-  mounted() {
-    this.cargarOrdenes()
+  async mounted() {
+    // Cargar órdenes al montar el componente
+    await this.cargarTodasOrdenes()
     this.cargarTiposDePago()
     
     const currentUser = AuthService.getCurrentUser()
@@ -288,16 +561,55 @@ export default {
     }
   },
   methods: {
-    async cargarOrdenes() {
+    async cargarTodasOrdenes() {
       try {
-        const res = await fetch(`${process.env.VUE_APP_API_URL}/ordenes/all`)
-        const data = await res.json()
-        this.ordenes = data
-        this.ordenesFiltradas = data
+        await this.cargarTodas()
       } catch (err) {
         console.error('Error al cargar órdenes:', err)
         this.mostrarSnackbar({
-          text: 'Error al cargar órdenes ❌',
+          text: 'Error al cargar órdenes',
+          color: 'error'
+        })
+      }
+    },
+    async aplicarFiltros() {
+      try {
+        const resultado = await this.ejecutarBusqueda()
+        
+        if (!resultado.success) {
+          this.mostrarSnackbar({
+            text: resultado.error || 'Error al buscar órdenes',
+            color: 'error'
+          })
+        } else if (resultado.total === 0) {
+          this.mostrarSnackbar({
+            text: 'No se encontraron órdenes con los filtros aplicados',
+            color: 'info'
+          })
+        }
+      } catch (err) {
+        console.error('Error al aplicar filtros:', err)
+        this.mostrarSnackbar({
+          text: err.message || 'Error al buscar órdenes',
+          color: 'error'
+        })
+      }
+    },
+    limpiarFiltros() {
+      this.limpiarBusqueda()
+      this.cargarTodasOrdenes()
+      this.mostrarSnackbar({
+        text: 'Filtros limpiados',
+        color: 'info'
+      })
+    },
+    async cambiarPaginaLocal(pagina) {
+      try {
+        await this.cambiarPagina(pagina)
+      } catch (err) {
+        console.error('Error al cambiar página:', err)
+        this.mostrarSnackbar({
+          text: 'Error al cargar página',
           color: 'error'
         })
       }
@@ -309,27 +621,10 @@ export default {
       } catch (err) {
         console.error('Error al cargar tipos de pago', err)
         this.mostrarSnackbar({
-          text: 'Error al cargar tipos de pago ❌',
+          text: 'Error al cargar tipos de pago ',
           color: 'error'
         })
       }
-    },
-    filtrarOrdenes() {
-      this.ordenesFiltradas = this.ordenes.filter(orden => {
-        const nombreMatch = this.filtroCliente === '' || orden.cliente_nombre?.toLowerCase().includes(this.filtroCliente.toLowerCase())
-        const fechaMatch = this.filtroFecha === '' || orden.fecha?.substring(0, 10) === this.filtroFecha
-        const estadoMatch = this.filtroEstado === null || orden.estado === this.filtroEstado
-        return nombreMatch && fechaMatch && estadoMatch
-      })
-    },
-    limpiarFiltros() {
-      this.filtroCliente = ''
-      this.filtroFecha = ''
-      this.filtroEstado = null
-      this.ordenesFiltradas = [...this.ordenes]
-    },
-    cambiarPagina(pagina) {
-      this.paginaActual = pagina
     },
     async verDetalle(orden) {
       this.dialogDetalle = true
@@ -350,7 +645,7 @@ export default {
       } catch (err) {
         console.error(`Error al cargar pagos para orden ${orden.id}:`, err)
         this.mostrarSnackbar({
-          text: 'Error al cargar pagos de la orden ❌',
+          text: 'Error al cargar pagos de la orden',
           color: 'error'
         })
       }
@@ -359,10 +654,46 @@ export default {
       this.ordenSeleccionada = orden
       this.dialogAbonar = true
     },
+    
+    // Manejar abono registrado - actualizar orden en la lista
+    manejarAbonoRegistrado(data) {
+      console.log('Abono registrado:', data)
+      
+      // Actualizar la orden en la lista de resultados con los datos del servidor
+      const index = this.resultados.findIndex(o => o.id === this.ordenSeleccionada.id)
+      if (index !== -1 && data.ordenActualizada) {
+        // Actualizar con los datos completos del servidor
+        this.resultados[index] = {
+          ...this.resultados[index],
+          abonado: Number(data.ordenActualizada.abonado || 0),
+          saldo_pendiente: Number(data.ordenActualizada.saldo_pendiente || 0),
+          estado_pago: data.ordenActualizada.estado_pago || data.estadoPago
+        }
+        
+        // Actualizar también la orden seleccionada
+        this.ordenSeleccionada = {
+          ...this.ordenSeleccionada,
+          abonado: Number(data.ordenActualizada.abonado || 0),
+          saldo_pendiente: Number(data.ordenActualizada.saldo_pendiente || 0),
+          estado_pago: data.ordenActualizada.estado_pago || data.estadoPago
+        }
+      }
+      
+      // Mostrar mensaje apropiado
+      const mensaje = data.estadoPago === 'pagado' 
+        ? `¡Orden #${this.ordenSeleccionada.id} pagada completamente!` 
+        : `Abono registrado. Saldo pendiente: Q ${Number(data.saldoPendiente || 0).toFixed(2)}`
+      
+      this.mostrarSnackbar({
+        text: mensaje,
+        color: 'success'
+      })
+    },
+    
     cerrarAbono() {
       this.dialogAbonar = false
       this.ordenSeleccionada = null
-      this.cargarOrdenes()
+      // Ya no es necesario recargar todas las órdenes, se actualiza localmente
     },
     
     // Función corregida para exportar PDF
@@ -410,14 +741,68 @@ export default {
     },
 
     estadoColor(estado) {
-      switch ((estado || '').toLowerCase()) {
-        case 'cancelado': return 'red'
-        case 'entregado': return 'green'
-        case 'en proceso': return 'orange'
-        case 'pendiente': return 'grey'
-        case 'finalizado': return 'teal'
-        case 'en produccion': return 'blue'
-        default: return 'purple'
+      const colores = {
+        'pendiente': 'orange',
+        'en proceso': 'blue',
+        'en produccion': 'purple',
+        'finalizado': 'green',
+        'entregado': 'success',
+        'cancelado': 'red'
+      }
+      return colores[(estado || '').toLowerCase()] || 'grey'
+    },
+    estadoIcono(estado) {
+      const iconos = {
+        'pendiente': 'mdi-clock-outline',
+        'en proceso': 'mdi-cogs',
+        'en produccion': 'mdi-factory',
+        'finalizado': 'mdi-check-circle-outline',
+        'entregado': 'mdi-truck-check',
+        'cancelado': 'mdi-cancel'
+      }
+      return iconos[(estado || '').toLowerCase()] || 'mdi-help-circle-outline'
+    },
+    estadoPagoIcono(estadoPago) {
+      switch ((estadoPago || '').toLowerCase()) {
+        case 'pagado': return 'mdi-check-circle'
+        case 'parcial': return 'mdi-clock-alert'
+        case 'pendiente': return 'mdi-alert-circle'
+        default: return 'mdi-help-circle'
+      }
+    },
+    async entregarOrden(orden) {
+      if (!confirm(`¿Está seguro de marcar la orden #${orden.id} como ENTREGADA?\n\nCliente: ${orden.cliente_nombre}`)) {
+        return
+      }
+
+      try {
+        const response = await fetch(`${process.env.VUE_APP_API_URL}/ordenes/update/${orden.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            estado: 'entregado'
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar el estado de la orden')
+        }
+
+        this.mostrarSnackbar({
+          text: `Orden #${orden.id} marcada como ENTREGADA exitosamente`,
+          color: 'success'
+        })
+
+        // Recargar órdenes para ver los cambios
+        await this.cargarTodasOrdenes()
+      } catch (error) {
+        console.error('Error al entregar orden:', error)
+        this.mostrarSnackbar({
+          text: `Error al entregar la orden: ${error.message}`,
+          color: 'error'
+        })
       }
     },
     mostrarSnackbar({ text, color }) {
@@ -435,7 +820,39 @@ export default {
   max-width: 1400px;
   margin: 0 auto;
 }
-.min-width-table {
-  min-width: 1200px;
+
+.cliente-info {
+  min-width: 150px;
+}
+
+.fecha-info {
+  min-width: 100px;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+/* Mejorar apariencia de la tabla */
+:deep(.v-data-table) {
+  border-radius: 8px;
+}
+
+:deep(.v-data-table-header) {
+  background-color: rgba(var(--v-theme-primary), 0.05);
+}
+
+:deep(.v-data-table__tr:hover) {
+  background-color: rgba(var(--v-theme-primary), 0.02);
+}
+
+/* Botones de acción */
+:deep(.v-btn--icon) {
+  border-radius: 8px;
+}
+
+/* Chips */
+:deep(.v-chip) {
+  font-weight: 500;
 }
 </style>

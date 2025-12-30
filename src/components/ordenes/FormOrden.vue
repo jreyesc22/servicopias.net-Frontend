@@ -154,37 +154,16 @@
           </v-btn>
         </div>
 
-        <!-- Componente CajaPago con eventos-->
-        <CajaPago
+        <!-- Componente AbonarOrden -->
+        <AbonarOrden
           v-else
           :orden="ordenParaCaja"
-          :usuario="usuarioActual"
-          @cobro-realizado="manejarCobroRealizado"
-          @pago-completado="manejarPagoCompletado"
+          :tipos-de-pago="tiposDePago"
+          :empleado-id="usuarioActual?.id"
+          @abono-registrado="manejarAbonoRegistrado"
+          @terminar="avanzarDespuesPago"
           @cancelar="pasoActual = 4"
-          @regresar-paso="cambiarPaso"
         />
-
-        <!-- Información de estado de pago -->
-        <v-card 
-          v-if="ordenGuardada && ordenGuardada.estado_pago !== 'pendiente'" 
-          variant="tonal" 
-          color="info" 
-          class="mt-4 pa-4"
-        >
-          <v-card-title class="text-subtitle-1">
-            <v-icon start>mdi-information</v-icon>
-            Estado de Pago Actual
-          </v-card-title>
-          <div class="d-flex justify-space-between align-center">
-            <span>Abonado:</span>
-            <span class="font-weight-bold">Q {{ (ordenGuardada.abonado || 0).toFixed(2) }}</span>
-          </div>
-          <div class="d-flex justify-space-between align-center">
-            <span>Saldo Pendiente:</span>
-            <span class="font-weight-bold">Q {{ (ordenGuardada.saldo_pendiente || 0).toFixed(2) }}</span>
-          </div>
-        </v-card>
 
         <!-- Opciones adicionales -->
         <div class="d-flex gap-3 justify-center mt-4">
@@ -244,9 +223,14 @@
                 <span class="text-h6 font-weight-bold text-primary">Q {{ pago.monto?.toFixed(2) }}</span>
               </div>
               
-              <div v-if="pago.vuelto > 0" class="d-flex justify-space-between align-center mb-3">
-                <span class="text-body-2">Vuelto:</span>
-                <span class="text-body-1 font-weight-medium text-success">Q {{ pago.vuelto?.toFixed(2) }}</span>
+              <div v-if="pago.efectivo_recibido && pago.efectivo_recibido > 0" class="d-flex justify-space-between align-center mb-3">
+                <span class="text-body-2">Paga con:</span>
+                <span class="text-body-1 font-weight-medium">Q {{ pago.efectivo_recibido?.toFixed(2) }}</span>
+              </div>
+              
+              <div v-if="pago.efectivo_recibido && pago.efectivo_recibido > 0" class="d-flex justify-space-between align-center mb-3">
+                <span class="text-body-2">Cambio:</span>
+                <span class="text-body-1 font-weight-medium text-success">Q {{ (pago.cambio || pago.vuelto || 0).toFixed(2) }}</span>
               </div>
               
               <div v-if="pago.numero_recibo" class="d-flex justify-space-between align-center">
@@ -415,18 +399,19 @@
 import FormCliente from './FormCliente.vue'
 import SelectorProductos from './SelectorProductos.vue'
 import ResumenOrden from './ResumenOrden.vue'
-import CajaPago from '../caja/CajaPago.vue'
+import AbonarOrden from '../caja/AbonarOrden.vue'
 import TicketPrinter from '../TicketPrinter.vue'
 import BarraEstado from './BarraEstado.vue'
 import WhatsAppSender from '../WhatsAppSender.vue'
 import AuthService from '@/services/auth.service'
+import { useTiposPago } from '../composables/useTiposPago'
 
 export default {
   components: {
     FormCliente,
     SelectorProductos,
     ResumenOrden,
-    CajaPago,
+    AbonarOrden,
     TicketPrinter,
     BarraEstado,
     WhatsAppSender
@@ -442,7 +427,7 @@ export default {
         estado: 'pendiente',
         total: 0,
         items: [],
-        // Campos sincronizados con CajaPago
+        // Campos sincronizados con AbonarOrden
         abonado: 0,
         saldo_pendiente: 0,
         estado_pago: 'pendiente',
@@ -482,14 +467,17 @@ export default {
         tituloAlerta: '',
         mensajeAlerta: '',
         iconoAlerta: 'mdi-information'
-      }
+      },
+      
+      // Tipos de pago para AbonarOrden
+      tiposDePago: []
     }
   },
   computed: {
     totalOrden() {
       return this.orden.items.reduce((sum, i) => sum + i.subtotal, 0)
     },
-    // Orden preparada para CajaPago con campos sincronizados
+    // Orden preparada para AbonarOrden con campos sincronizados
     ordenParaCaja() {
       return {
         ...this.ordenGuardada,
@@ -569,8 +557,8 @@ export default {
         this.ordenGuardada = {
           ...datosOrden,
           id: resData.orden.id,
-          abonado: resData.orden.abonado || (datosOrden.estado === 'entregado' ? datosOrden.total : 0),
-          saldo_pendiente: resData.orden.saldo_pendiente || (datosOrden.estado === 'entregado' ? 0 : datosOrden.total),
+          abonado: Number(resData.orden.abonado) || (datosOrden.estado === 'entregado' ? Number(datosOrden.total) : 0),
+          saldo_pendiente: Number(resData.orden.saldo_pendiente) || (datosOrden.estado === 'entregado' ? 0 : Number(datosOrden.total)),
           estado_pago: resData.orden.estado_pago || (datosOrden.estado === 'entregado' ? 'pagado' : 'pendiente'),
           tipoPago: { id: 1, nombre: 'Efectivo' }
         }
@@ -586,27 +574,80 @@ export default {
       }
     },
 
-    // Manejar cobro realizado con estructura correcta
-    manejarCobroRealizado(data) {
-      console.log('Cobro realizado:', data)
+    // Manejar abono registrado desde AbonarOrden (componente unificado)
+    manejarAbonoRegistrado(data) {
+      console.log('Abono registrado:', data)
       
-      const { movimiento, ordenActualizada, tipo } = data
-      
-      // Actualizar la orden guardada con los nuevos valores
-      if (movimiento) {
-        this.actualizarOrdenLocal(movimiento)
+      // Actualizar orden guardada con datos del servidor
+      if (data.ordenActualizada) {
+        this.ordenGuardada = {
+          ...this.ordenGuardada,
+          abonado: Number(data.ordenActualizada.abonado || data.abonado || 0),
+          saldo_pendiente: Number(data.ordenActualizada.saldo_pendiente || data.saldoPendiente || 0),
+          estado_pago: data.ordenActualizada.estado_pago || data.estadoPago || 'pendiente'
+        }
+      }
+
+      // Guardar información del pago para mostrar en el ticket
+      this.pago = {
+        monto: data.monto || 0,
+        monto_pagado: data.monto || 0,
+        cambio: data.cambio || 0,
+        vuelto: data.cambio || 0,
+        metodo: data.tipoPago || 'Desconocido',
+        forma_pago: data.tipoPago || 'Desconocido',
+        numero_recibo: data.numeroRecibo || null,
+        efectivo_recibido: data.efectivoRecibido || null,
+        fecha: new Date().toISOString(),
+        es_pago_total: data.estadoPago === 'pagado',
+        saldo_restante: data.saldoPendiente || 0
       }
       
-      // Si necesitas recargar desde el servidor
-      if (ordenActualizada) {
-        this.recargarOrdenDesdeServidor()
+      // Construir mensaje con detalles del pago
+      let mensaje = data.estadoPago === 'pagado'
+        ? '¡Pago completado exitosamente!'
+        : data.estadoPago === 'parcial'
+          ? 'Abono parcial registrado exitosamente'
+          : 'Abono registrado exitosamente'
+      
+      // Agregar detalles al mensaje
+      mensaje += `\nMonto: Q ${data.monto.toFixed(2)}`
+      if (data.cambio > 0) {
+        mensaje += `\nCambio: Q ${data.cambio.toFixed(2)}`
+      }
+      if (data.estadoPago !== 'pagado' && data.saldoPendiente > 0) {
+        mensaje += `\nSaldo pendiente: Q ${data.saldoPendiente.toFixed(2)}`
       }
       
-      // Mostrar notificación
-      const mensaje = tipo === 'pago_total' 
-        ? 'Pago completado exitosamente' 
-        : 'Abono registrado exitosamente'
       this.mostrarNotificacion(mensaje, 'success')
+      
+      // Si es pago completo, avanzar y enviar WhatsApp
+      if (data.estadoPago === 'pagado' || data.ordenCompletada) {
+        setTimeout(() => {
+          this.pasoActual = 6
+          this.enviarWhatsAppAutomatico()
+        }, 1500)
+      } else {
+        // Si es abono parcial, permanecer en paso 5 para permitir más abonos
+        // No hacer nada, se queda en el paso actual
+      }
+    },
+    
+    // Avanzar después del pago
+    avanzarDespuesPago() {
+      // Si ya está pagado, ir a imprimir ticket
+      if (this.ordenGuardada?.estado_pago === 'pagado') {
+        this.pasoActual = 6
+      } else {
+        // Si es abono parcial, permanecer en paso 5 para permitir más abonos
+        // No cambiamos de paso, el usuario puede seguir abonando o cancelar
+      }
+    },
+    
+    // Mantener compatibilidad con código existente (legacy)
+    manejarCobroRealizado(data) {
+      // Redirigir al nuevo método
+      this.manejarAbonoRegistrado(data)
     },
 
     // Manejar pago completado with estructura correcta
@@ -684,11 +725,11 @@ export default {
     actualizarOrdenLocal(movimiento) {
       if (!movimiento || !this.ordenGuardada) return
       
-      // Sumar el nuevo abono al total abonado
-      this.ordenGuardada.abonado = (this.ordenGuardada.abonado || 0) + parseFloat(movimiento.monto)
+      // Sumar el nuevo abono al total abonado (asegurar que sean números)
+      this.ordenGuardada.abonado = Number(this.ordenGuardada.abonado || 0) + Number(movimiento.monto)
       
       // Recalcular saldo pendiente
-      this.ordenGuardada.saldo_pendiente = Math.max(0, this.ordenGuardada.total - this.ordenGuardada.abonado)
+      this.ordenGuardada.saldo_pendiente = Math.max(0, Number(this.ordenGuardada.total) - Number(this.ordenGuardada.abonado))
       
       // Actualizar estado de pago
       if (this.ordenGuardada.abonado >= this.ordenGuardada.total) {
@@ -711,8 +752,8 @@ export default {
           const ordenActualizada = await res.json()
           this.ordenGuardada = {
             ...this.ordenGuardada,
-            abonado: ordenActualizada.abonado || 0,
-            saldo_pendiente: ordenActualizada.saldo_pendiente || 0,
+            abonado: Number(ordenActualizada.abonado) || 0,
+            saldo_pendiente: Number(ordenActualizada.saldo_pendiente) || 0,
             estado_pago: ordenActualizada.estado_pago || 'pendiente'
           }
         }
@@ -721,7 +762,7 @@ export default {
       }
     },
 
-    // Cambiar paso (para manejar navegación desde CajaPago)
+    // Cambiar paso (para manejar navegación desde componentes hijos)
     cambiarPaso(nuevoPaso) {
       this.pasoActual = nuevoPaso
     },
@@ -881,6 +922,11 @@ export default {
   // Inicializar usuario al montar componente
   async mounted() {
     console.log('Componente montado con usuario:', this.usuarioActual)
+    
+    // Cargar tipos de pago usando composable
+    const { tiposPago, fetchTiposPago } = useTiposPago()
+    await fetchTiposPago()
+    this.tiposDePago = tiposPago.value
   }
 }
 </script>
