@@ -421,6 +421,17 @@ export default {
         }
       },
       immediate: true
+    },
+
+    // Inicializar monto cuando cambie la orden o su saldo pendiente
+    'orden.saldo_pendiente': {
+      handler(nuevoSaldo) {
+        // Solo inicializar si no hay monto establecido aún
+        if (nuevoSaldo > 0 && (this.monto === null || this.monto === 0)) {
+          this.actualizarTipoPago();
+        }
+      },
+      immediate: true
     }
   },
 
