@@ -20,56 +20,46 @@
           </v-col>
 
           <v-col cols="12" md="6" class="pa-2">
-            <v-card class="pa-4" elevation="1" height="100%">
-              <h3 class="text-subtitle-1 font-weight-medium mb-2">Productos agregados</h3>
-
-              <v-data-table
-                :headers="[
-                  { text: 'Producto', value: 'nombre' },
-                  { text: 'Cantidad', value: 'cantidad' },
-                  { text: 'Precio Unitario', value: 'precio_unitario' },
-                  { text: 'Subtotal', value: 'subtotal' },
-                  { text: 'Acción', value: 'accion', sortable: false }
-                ]"
-                :items="orden.items"
-                density="compact"
-                class="tabla-resumen"
-                hide-default-footer
-              >
-                <template #item.precio_unitario="{ item }">
-                  Q {{ item.precio_unitario.toFixed(2) }}
-                </template>
-                <template #item.subtotal="{ item }">
-                  Q {{ item.subtotal.toFixed(2) }}
-                </template>
-                <template #item.accion="{ index }">
-                  <v-btn icon color="error" @click="quitarItem(index)" size="small">
-                    <v-icon>mdi-delete</v-icon>
-                  </v-btn>
-                </template>
-              </v-data-table>
-            </v-card>
+            <TablaResumenProductos 
+              :items="orden.items" 
+              @quitar="quitarItem"
+            />
           </v-col>
         </v-row>
 
-        <v-row class="mt-4 align-center justify-space-between">
-          <v-col cols="12" md="6" class="text-start text-subtitle-1 font-weight-medium">
-            <strong>Total: Q {{ totalOrden.toFixed(2) }}</strong>
-          </v-col>
-          <v-col cols="12" md="6" class="acciones">
-            <v-btn color="grey" @click="pasoActual = 1" variant="outlined">
-              <v-icon start>mdi-arrow-left</v-icon>
-              Regresar
-            </v-btn>
-            <v-btn 
-              color="primary" 
-              :disabled="orden.items.length === 0" 
-              @click="continuarPaso3"
-              :loading="loading"
-            >
-              <v-icon start>mdi-arrow-right</v-icon>
-              Siguiente
-            </v-btn>
+        <v-row class="mt-4 align-center justify-end">
+          <v-col cols="auto" class="acciones">
+            <v-tooltip text="Regresar" location="top">
+              <template #activator="{ props }">
+                <v-btn 
+                  v-bind="props"
+                  icon 
+                  color="grey" 
+                  @click="pasoActual = 1" 
+                  variant="outlined"
+                  size="large"
+                >
+                  <v-icon>mdi-arrow-left</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            
+            <v-tooltip text="Siguiente" location="top">
+              <template #activator="{ props }">
+                <v-btn 
+                  v-bind="props"
+                  icon
+                  color="primary" 
+                  :disabled="orden.items.length === 0" 
+                  @click="continuarPaso3"
+                  :loading="loading"
+                  size="large"
+                  class="ml-2"
+                >
+                  <v-icon>mdi-arrow-right</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
           </v-col>
         </v-row>
       </div>
@@ -398,6 +388,7 @@
 <script>
 import FormCliente from './FormCliente.vue'
 import SelectorProductos from './SelectorProductos.vue'
+import TablaResumenProductos from './TablaResumenProductos.vue'
 import ResumenOrden from './ResumenOrden.vue'
 import AbonarOrden from '../caja/AbonarOrden.vue'
 import TicketPrinter from '../TicketPrinter.vue'
@@ -410,6 +401,7 @@ export default {
   components: {
     FormCliente,
     SelectorProductos,
+    TablaResumenProductos,
     ResumenOrden,
     AbonarOrden,
     TicketPrinter,

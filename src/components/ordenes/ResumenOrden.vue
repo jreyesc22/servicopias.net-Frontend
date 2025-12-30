@@ -1,6 +1,12 @@
 <template>
   <v-card class="pa-4" elevation="2">
-    <v-card-title class="headline">Resumen de la Orden</v-card-title>
+    <v-card-title 
+      class="text-white d-flex align-center" 
+      :style="{ background: headerConfig.gradiente }"
+    >
+      <v-icon class="mr-3">{{ headerConfig.icono }}</v-icon>
+      <span>{{ headerConfig.titulo }}</span>
+    </v-card-title>
 
     <v-card-text>
       <!-- Datos del Cliente -->
@@ -10,11 +16,11 @@
         </div>
         <div class="d-flex flex-wrap gap-4 text-body-2 text-medium-emphasis">
           <div class="mr-4">
-            <v-icon size="x-small" start>mdi-card-account-details</v-icon>
+            <v-icon size="x-small" start>{{ getIcono('nit') }}</v-icon>
             <strong>NIT:</strong> {{ orden.cliente_nit || 'CF' }}
           </div>
           <div>
-            <v-icon size="x-small" start>mdi-phone</v-icon>
+            <v-icon size="x-small" start>{{ getIcono('telefono') }}</v-icon>
             <strong>Tel:</strong> {{ orden.cliente_telefono || 'N/A' }}
           </div>
         </div>
@@ -41,11 +47,11 @@
         </v-switch>
 
         <v-chip 
-          :color="estadoSeleccionado === 'entregado' ? 'success' : 'warning'" 
+          :color="estadoChip.color" 
           variant="tonal"
           class="font-weight-bold"
         >
-          {{ estadoSeleccionado === 'entregado' ? 'ENTREGADO' : 'PENDIENTE' }}
+          {{ estadoChip.texto }}
         </v-chip>
       </div>
       
@@ -66,17 +72,17 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in orden.items" :key="item.itemId">
+          <tr v-for="item in orden.items" :key="item.itemId" class="item-row">
             <td>{{ item.nombre }}</td>
             <td class="text-center">{{ item.cantidad }}</td>
-            <td class="text-center">Q {{ item.precio_unitario.toFixed(2) }}</td>
-            <td class="text-center">Q {{ item.subtotal.toFixed(2) }}</td>
+            <td class="text-center">{{ formatearMoneda(item.precio_unitario) }}</td>
+            <td class="text-center">{{ formatearMoneda(item.subtotal) }}</td>
           </tr>
         </tbody>
       </v-table>
 
       <div class="text-end mt-4">
-        <h4>Total: <strong>Q {{ total.toFixed(2) }}</strong></h4>
+        <h4>Total: <strong>{{ formatearMoneda(total) }}</strong></h4>
       </div>
     </v-card-text>
 
@@ -96,51 +102,106 @@
   </v-card>
 </template>
 
-<script>
-export default {
-  props: {
-    orden: {
-      type: Object,
-      required: true
-    }
-  },
-  data() {
-    return {
-      botonDeshabilitado: false,
-      ventaDirecta: true, // Activo por defecto
-      estadoSeleccionado: 'entregado' // Valor por defecto
-    };
-  },
-  computed: {
-    total() {
-      return this.orden.items.reduce((acc, item) => acc + item.subtotal, 0);
-    }
-  },
-  methods: {
-    actualizarEstadoOrden() {
-      this.estadoSeleccionado = this.ventaDirecta ? 'entregado' : 'pendiente'
-    },
-    confirmarConRetraso() {
-      if (this.botonDeshabilitado) return;
+<script setup>
+import { ref, computed } from 'vue'
+import { useCardUI } from '../composables/useCardUI'
 
-      this.botonDeshabilitado = true;
-      
-      // Emitir la orden con el estado seleccionado
-      this.$emit('confirmar', {
-        ...this.orden,
-        estado: this.estadoSeleccionado
-      });
-
-      setTimeout(() => {
-        this.botonDeshabilitado = false;
-      }, 2000); // 2 segundos de espera
-    }
+// Props
+const props = defineProps({
+  orden: {
+    type: Object,
+    required: true
   }
-};
+})
+
+// Emits
+const emit = defineEmits(['confirmar', 'cancelar'])
+
+// Composable de UI
+const {
+  getHeaderConfig,
+  getIcono,
+  formatearMoneda,
+  crearChipEstado
+} = useCardUI()
+
+// Estado local
+const botonDeshabilitado = ref(false)
+const ventaDirecta = ref(true) // Activo por defecto
+const estadoSeleccionado = ref('entregado') // Valor por defecto
+
+// Configuración del header
+const headerConfig = computed(() => getHeaderConfig({
+  tipo: 'info',
+  icono: 'mdi-file-document-check',
+  titulo: 'Resumen de la Orden'
+}))
+
+// Chip de estado dinámico
+const estadoChip = computed(() => {
+  const estado = estadoSeleccionado.value
+  return crearChipEstado(estado, {
+    color: estado === 'entregado' ? 'success' : 'warning',
+    texto: estado === 'entregado' ? 'ENTREGADO' : 'PENDIENTE'
+  })
+})
+
+// Total calculado
+const total = computed(() => {
+  return props.orden.items.reduce((acc, item) => acc + item.subtotal, 0)
+})
+
+// Métodos
+function actualizarEstadoOrden() {
+  estadoSeleccionado.value = ventaDirecta.value ? 'entregado' : 'pendiente'
+}
+
+function confirmarConRetraso() {
+  if (botonDeshabilitado.value) return
+
+  botonDeshabilitado.value = true
+  
+  // Emitir la orden con el estado seleccionado
+  emit('confirmar', {
+    ...props.orden,
+    estado: estadoSeleccionado.value
+  })
+
+  setTimeout(() => {
+    botonDeshabilitado.value = false
+  }, 2000) // 2 segundos de espera
+}
 </script>
 
 <style scoped>
-/* Estilos adicionales para el slider */
+/* Estilos de UI compartidos */
+.text-white {
+  color: white !important;
+}
+
+.text-primary {
+  color: #1976d2 !important;
+}
+
+.v-table {
+  font-size: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.v-table thead tr th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.item-row:hover {
+  background-color: #f9f9f9;
+}
+
+/* Estilos específicos del componente */
 .d-flex.align-center {
   align-items: center;
 }
@@ -155,5 +216,11 @@ export default {
 
 .me-1 {
   margin-right: 4px;
+}
+
+@media (max-width: 767px) {
+  .v-table {
+    font-size: 12px;
+  }
 }
 </style>

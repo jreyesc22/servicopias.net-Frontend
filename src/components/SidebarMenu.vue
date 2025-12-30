@@ -2,11 +2,17 @@
   <v-app>
     <!-- Barra superior con botón hamburguesa -->
     <v-app-bar app color="primary" dark elevation="2">
+      <!-- Botón unificado: toggle drawer en mobile, toggle mini en desktop -->
       <v-app-bar-nav-icon 
-        @click="toggleDrawer" 
-        aria-label="Abrir menú de navegación"
+        @click="isMobile || isTablet ? toggleDrawer() : mini = !mini" 
+        :aria-label="isMobile || isTablet ? 'Abrir menú de navegación' : (mini ? 'Expandir menú' : 'Contraer menú')"
         :loading="loading"
-      />
+      >
+        <v-icon v-if="!isMobile && !isTablet">
+          {{ mini ? 'mdi-menu-open' : 'mdi-menu' }}
+        </v-icon>
+      </v-app-bar-nav-icon>
+      
       <v-toolbar-title class="text-truncate">
         {{ currentTitle }}
       </v-toolbar-title>
@@ -130,8 +136,8 @@
       color="blue-grey-darken-3"
       class="drawer-transition"
       :width="drawerWidth"
-      :mini-variant="isTablet && drawer"
-      :expand-on-hover="isTablet"
+      :rail="mini && !isMobile && !isTablet"
+      :expand-on-hover="(mini && !isMobile && !isTablet) || isTablet"
     >
       <!-- Header del drawer -->
  
@@ -218,6 +224,7 @@ export default {
   data() {
     return {
       drawer: true,
+      mini: true, // Sidebar colapsado por defecto
       loading: false,
       currentUser: null,
       

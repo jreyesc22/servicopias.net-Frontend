@@ -7,6 +7,14 @@ import 'roboto-fontface/css/roboto/roboto-fontface.css'
 import 'vuetify/styles'
 import '@mdi/font/css/materialdesignicons.css'
 
+// Suprimir errores de ResizeObserver en desarrollo
+const resizeObserverErr = window.console.error
+window.console.error = (...args) => {
+  if (args[0]?.toString().includes('ResizeObserver loop completed with undelivered notifications')) {
+    return
+  }
+  resizeObserverErr(...args)
+}
 
 loadFonts()
 

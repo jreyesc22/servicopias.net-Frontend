@@ -1,46 +1,61 @@
 <template>
   <v-container class="ordenes-view" fluid>
   
-    <!-- Encabezado fijo con acciones -->
-<v-card class="welcome-card mb-6" elevation="2">
-  <v-card-text class="text-center pa-8">
-    <v-icon size="80" color="primary" class="mb-4">mdi-format-list-checks</v-icon>
-    <h2 class="text-h4 mb-2">¡Bienvenido al módulo de Órdenes!</h2>
-    <p class="text-h6 text-grey-darken-1 mb-6">
-      Aquí puedes gestionar y crear órdenes fácilmente
-    </p>
-    <v-row justify="center">
-      <v-col cols="12" md="6">
-        <v-card class="quick-action-card" @click="abrirDialogNuevaOrden" hover>
-          <v-card-text class="d-flex align-center">
-            <v-icon size="40" color="primary" class="mr-4">mdi-plus-circle</v-icon>
-            <div>
-              <h4 class="text-h6">Nueva Orden</h4>
-              <p class="text-body-2 text-grey-darken-1">Crear una nueva orden de servicio o producto</p>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="12" md="6">
-        <v-card class="quick-action-card" @click="cambiarVista('lista')" hover>
-          <v-card-text class="d-flex align-center">
-            <v-icon size="40" color="success" class="mr-4">mdi-format-list-bulleted</v-icon>
-            <div>
-              <h4 class="text-h6">Ver Órdenes</h4>
-              <p class="text-body-2 text-grey-darken-1">Explora todas las órdenes registradas</p>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-card-text>
-</v-card>
+    <!-- Encabezado fijo con acciones (solo visible en vista inicio) -->
+    <v-card v-if="vistaActual === 'inicio'" class="welcome-card mb-6" elevation="2">
+      <v-card-text class="text-center pa-8">
+        <v-icon size="80" color="primary" class="mb-4">mdi-format-list-checks</v-icon>
+        <h2 class="text-h4 mb-2">¡Bienvenido al módulo de Órdenes!</h2>
+        <p class="text-h6 text-grey-darken-1 mb-6">
+          Aquí puedes gestionar y crear órdenes fácilmente
+        </p>
+        <v-row justify="center">
+          <v-col cols="12" md="6">
+            <v-card class="quick-action-card" @click="abrirDialogNuevaOrden" hover>
+              <v-card-text class="d-flex align-center">
+                <v-icon size="40" color="primary" class="mr-4">mdi-plus-circle</v-icon>
+                <div>
+                  <h4 class="text-h6">Nueva Orden</h4>
+                  <p class="text-body-2 text-grey-darken-1">Crear una nueva orden de servicio o producto</p>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="6">
+            <v-card class="quick-action-card" @click="cambiarVista('lista')" hover>
+              <v-card-text class="d-flex align-center">
+                <v-icon size="40" color="success" class="mr-4">mdi-format-list-bulleted</v-icon>
+                <div>
+                  <h4 class="text-h6">Ver Órdenes</h4>
+                  <p class="text-body-2 text-grey-darken-1">Explora todas las órdenes registradas</p>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
 
 
-    <!-- Vista de lista de órdenes -->
+    <!-- Vista de nueva orden -->
     <v-fade-transition mode="out-in">
-      <div v-if="vistaActual === 'lista'" key="lista">
+      <div v-if="vistaActual === 'nueva'" key="nueva">
+        <v-card class="new-order-card" elevation="2">
+          <v-card-title class="d-flex align-center">
+            <v-icon class="mr-3" color="primary">mdi-plus-circle</v-icon>
+            <span>Nueva Orden</span>
+            <v-spacer />
+            <v-btn icon="mdi-close" variant="text" @click="cerrarFormularioOrden" />
+          </v-card-title>
+          <v-card-text>
+            <FormOrden @ordenGuardada="ordenGuardada" />
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <!-- Vista de lista de órdenes -->
+      <div v-else-if="vistaActual === 'lista'" key="lista">
         <v-card class="list-card" elevation="2">
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-3" color="success">mdi-format-list-bulleted</v-icon>
@@ -54,21 +69,6 @@
         </v-card>
       </div>
     </v-fade-transition>
-
-    <!-- Modal para nueva orden -->
-    <v-dialog v-model="dialogNuevaOrden" max-width="1800" persistent>
-      <v-card>
-        <v-card-title class="d-flex align-center">
-          <v-icon class="mr-3" color="primary">mdi-plus-circle</v-icon>
-          <span>Nueva Orden</span>
-          <v-spacer />
-          <v-btn icon="mdi-close" variant="text" @click="cerrarDialogNuevaOrden" />
-        </v-card-title>
-        <v-card-text>
-          <FormOrden @ordenGuardada="ordenGuardada" />
-        </v-card-text>
-      </v-card>
-    </v-dialog>
 
     <!-- Snackbar -->
     <v-snackbar
@@ -98,7 +98,6 @@ export default {
   },
   setup() {
     const vistaActual = ref('inicio')
-    const dialogNuevaOrden = ref(false)
     const ordenes = ref([])
     const snackbar = ref({
       show: false,
@@ -125,16 +124,16 @@ export default {
     }
 
     function abrirDialogNuevaOrden() {
-      dialogNuevaOrden.value = true
+      vistaActual.value = 'nueva'
     }
 
-    function cerrarDialogNuevaOrden() {
-      dialogNuevaOrden.value = false
+    function cerrarFormularioOrden() {
+      vistaActual.value = 'inicio'
     }
 
     function ordenGuardada(nuevaOrden) {
       ordenes.value.unshift(nuevaOrden)
-      cerrarDialogNuevaOrden()
+      vistaActual.value = 'inicio'
       mostrarNotificacion('Orden guardada exitosamente')
     }
 
@@ -146,11 +145,10 @@ export default {
       vistaActual,
       ordenes,
       snackbar,
-      dialogNuevaOrden,
       cambiarVista,
       mostrarNotificacion,
       abrirDialogNuevaOrden,
-      cerrarDialogNuevaOrden,
+      cerrarFormularioOrden,
       ordenGuardada
     }
   }
@@ -185,7 +183,8 @@ background: linear-gradient(135deg, #f0faffe7 0%, #e6f4ff99 100%);
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
-.list-card {
+.list-card,
+.new-order-card {
   border-radius: 12px;
 }
 
