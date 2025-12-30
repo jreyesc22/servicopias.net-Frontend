@@ -3,133 +3,203 @@
     <h3 class="text-h5 mb-4">Historial de Órdenes</h3>
 
     <!-- Filtros -->
-    <v-row class="mb-4" dense>
-      <!-- Selector de tipo de búsqueda -->
-      <v-col cols="12" md="2">
-        <v-select
-          v-model="filtros.tipo"
-          :items="tiposBusqueda"
-          label="Buscar por"
-          density="compact"
-          variant="outlined"
-        />
-      </v-col>
+    <v-card class="mb-4 filters-card" elevation="1">
+      <v-card-text class="py-3">
+        <!-- Chips de tipo de búsqueda -->
+        <div class="d-flex align-center gap-3 mb-4 flex-wrap">
+          <span class="text-subtitle-2 font-weight-medium text-medium-emphasis">
+            Buscar por:
+          </span>
+          <v-chip-group v-model="filtros.tipo" mandatory class="filter-chips">
+            <v-chip 
+              value="todos" 
+              color="primary"
+              variant="outlined" 
+              size="large"
+              filter
+            >
+              <v-icon start>mdi-format-list-bulleted</v-icon>
+              Todas
+            </v-chip>
+            <v-chip 
+              value="id" 
+              color="purple"
+              variant="outlined" 
+              size="large"
+              filter
+            >
+              <v-icon start>mdi-pound</v-icon>
+              ID
+            </v-chip>
+            <v-chip 
+              value="cliente" 
+              color="blue"
+              variant="outlined" 
+              size="large"
+              filter
+            >
+              <v-icon start>mdi-account</v-icon>
+              Cliente
+            </v-chip>
+            <v-chip 
+              value="fecha" 
+              color="orange"
+              variant="outlined" 
+              size="large"
+              filter
+            >
+              <v-icon start>mdi-calendar</v-icon>
+              Fecha
+            </v-chip>
+            <v-chip 
+              value="rango" 
+              color="teal"
+              variant="outlined" 
+              size="large"
+              filter
+            >
+              <v-icon start>mdi-calendar-range</v-icon>
+              Rango de Fechas
+            </v-chip>
+          </v-chip-group>
+        </div>
 
-      <!-- Filtro por ID -->
-      <v-col v-if="filtros.tipo === 'id'" cols="12" md="3">
-        <v-text-field
-          v-model="filtros.id"
-          label="ID de Orden"
-          type="number"
-          prepend-inner-icon="mdi-pound"
-          clearable
-          density="compact"
-          variant="outlined"
-        />
-      </v-col>
+        <!-- Campos dinámicos según tipo de búsqueda -->
+        <v-row v-if="filtros.tipo !== 'todos'" dense class="mb-3">
+          <!-- Filtro por ID -->
+          <v-col v-if="filtros.tipo === 'id'" cols="12" md="4">
+            <v-text-field
+              v-model="filtros.id"
+              label="ID de Orden"
+              type="number"
+              prepend-inner-icon="mdi-pound"
+              clearable
+              density="comfortable"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
 
-      <!-- Filtros por cliente -->
-      <template v-if="filtros.tipo === 'cliente'">
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="filtros.cliente_nombre"
-            label="Nombre del cliente"
-            prepend-inner-icon="mdi-account"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="filtros.cliente_nit"
-            label="NIT del cliente"
-            prepend-inner-icon="mdi-card-account-details"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-      </template>
+          <!-- Filtros por cliente -->
+          <template v-if="filtros.tipo === 'cliente'">
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="filtros.cliente_nombre"
+                label="Nombre del cliente"
+                prepend-inner-icon="mdi-account"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="filtros.cliente_nit"
+                label="NIT del cliente"
+                prepend-inner-icon="mdi-card-account-details"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+          </template>
 
-      <!-- Filtro por fecha única -->
-      <v-col v-if="filtros.tipo === 'fecha'" cols="12" md="3">
-        <v-text-field
-          v-model="filtros.fecha"
-          label="Fecha"
-          type="date"
-          clearable
-          density="compact"
-          variant="outlined"
-        />
-      </v-col>
+          <!-- Filtro por fecha única -->
+          <v-col v-if="filtros.tipo === 'fecha'" cols="12" md="4">
+            <v-text-field
+              v-model="filtros.fecha"
+              label="Fecha"
+              type="date"
+              prepend-inner-icon="mdi-calendar"
+              clearable
+              density="comfortable"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
 
-      <!-- Filtros por rango de fechas -->
-      <template v-if="filtros.tipo === 'rango'">
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filtros.fechaInicio"
-            label="Fecha Inicio"
-            type="date"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-        <v-col cols="12" md="2">
-          <v-text-field
-            v-model="filtros.fechaFin"
-            label="Fecha Fin"
-            type="date"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filtros.estado"
-            :items="estadosDisponibles"
-            label="Estado"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-        <v-col cols="12" md="2">
-          <v-select
-            v-model="filtros.estadoPago"
-            :items="estadosPagoDisponibles"
-            label="Estado Pago"
-            clearable
-            density="compact"
-            variant="outlined"
-          />
-        </v-col>
-      </template>
+          <!-- Filtros por rango de fechas -->
+          <template v-if="filtros.tipo === 'rango'">
+            <v-col cols="12" md="2">
+              <v-text-field
+                v-model="filtros.fechaInicio"
+                label="Fecha Inicio"
+                type="date"
+                prepend-inner-icon="mdi-calendar-start"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" md="2">
+              <v-text-field
+                v-model="filtros.fechaFin"
+                label="Fecha Fin"
+                type="date"
+                prepend-inner-icon="mdi-calendar-end"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" md="2">
+              <v-select
+                v-model="filtros.estado"
+                :items="estadosDisponibles"
+                label="Estado"
+                prepend-inner-icon="mdi-tag"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" md="2">
+              <v-select
+                v-model="filtros.estadoPago"
+                :items="estadosPagoDisponibles"
+                label="Estado Pago"
+                prepend-inner-icon="mdi-cash"
+                clearable
+                density="comfortable"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+          </template>
+        </v-row>
 
-      <!-- Botones de acción -->
-      <v-col cols="12" md="2" class="d-flex align-center gap-2">
-        <v-btn 
-          @click="aplicarFiltros" 
-          color="primary" 
-          :loading="loading"
-          :disabled="loading"
-        >
-          <v-icon start>mdi-magnify</v-icon>
-          Buscar
-        </v-btn>
-        <v-btn 
-          @click="limpiarFiltros" 
-          color="grey" 
-          variant="outlined"
-          :disabled="loading"
-        >
-          <v-icon start>mdi-close</v-icon>
-          Limpiar
-        </v-btn>
-      </v-col>
-    </v-row>
+        <!-- Botones de acción -->
+        <div class="d-flex justify-end gap-2 mt-3">
+          <v-btn 
+            v-if="filtros.tipo !== 'todos'"
+            @click="aplicarFiltros" 
+            color="primary" 
+            :loading="loading"
+            :disabled="loading"
+            size="large"
+          >
+            <v-icon start>mdi-magnify</v-icon>
+            Buscar
+          </v-btn>
+          <v-btn 
+            v-if="filtros.tipo !== 'todos'"
+            @click="limpiarFiltros" 
+            color="grey" 
+            variant="outlined"
+            :disabled="loading"
+            size="large"
+          >
+            <v-icon start>mdi-close</v-icon>
+            Limpiar
+          </v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
 
     <!-- Alerta de error -->
     <v-alert
@@ -194,20 +264,22 @@
           </v-badge>
         </template>
 
-        <!-- Cliente con teléfono -->
+        <!-- Cliente con teléfono y NIT -->
         <template #item.cliente="{ item }">
           <div class="cliente-info">
-            <div class="text-subtitle-1 font-weight-medium">{{ item.cliente_nombre }}</div>
-            <div class="text-caption text-grey d-flex align-center">
-              <v-icon size="14" class="mr-1">mdi-phone</v-icon>
+            <div class="text-subtitle-1 font-weight-medium mb-1">
+              <v-icon size="18" color="primary" class="mr-1">mdi-account</v-icon>
+              {{ item.cliente_nombre }}
+            </div>
+            <div class="text-caption text-grey d-flex align-center mb-1">
+              <v-icon size="14" color="green" class="mr-1">mdi-phone</v-icon>
               {{ item.cliente_telefono }}
             </div>
+            <div class="text-caption text-grey d-flex align-center">
+              <v-icon size="14" color="orange" class="mr-1">mdi-card-account-details</v-icon>
+              {{ item.cliente_nit }}
+            </div>
           </div>
-        </template>
-
-        <!-- NIT -->
-        <template #item.nit="{ item }">
-          <div class="text-body-2">{{ item.cliente_nit }}</div>
         </template>
 
         <!-- Fechas -->
@@ -479,8 +551,7 @@ export default {
       // Headers de la tabla
       headers: [
         { title: '#', key: 'id', sortable: true, width: '100px' },
-        { title: 'Cliente', key: 'cliente', sortable: true },
-        { title: 'NIT', key: 'nit', sortable: false, width: '120px' },
+        { title: 'Cliente', key: 'cliente', sortable: true, width: '220px' },
         { title: 'Fecha Orden', key: 'fechaOrden', sortable: true, width: '140px' },
         { title: 'Fecha Entrega', key: 'fechaEntrega', sortable: true, width: '120px' },
         { title: 'Total', key: 'total', sortable: true, width: '120px' },
@@ -815,6 +886,17 @@ export default {
 </script>
 
 <style scoped>
+/* Chips de filtro */
+.filter-chips .v-chip {
+  font-size: 0.9rem;
+  height: 36px;
+  margin-right: 8px;
+}
+
+.filters-card {
+  border-radius: 12px;
+}
+
 .lista-ordenes {
   padding: 10px;
   max-width: 1400px;
@@ -822,7 +904,8 @@ export default {
 }
 
 .cliente-info {
-  min-width: 150px;
+  min-width: 200px;
+  line-height: 1.3;
 }
 
 .fecha-info {

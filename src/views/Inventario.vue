@@ -70,8 +70,7 @@
       <div v-else-if="vistaActual === 'lista'" key="lista">
         <v-card class="list-card" elevation="2">
           <v-card-title class="d-flex align-center">
-            <v-icon class="mr-3" color="info">mdi-format-list-bulleted</v-icon>
-            <span>Lista de Productos y Servicios</span>
+            
             <v-spacer></v-spacer>
             <v-btn icon="mdi-close" variant="text" @click="cambiarVista('inicio')" />
           </v-card-title>
@@ -88,8 +87,7 @@
       <div v-else-if="vistaActual === 'categorias'" key="categorias">
         <v-card class="categories-card" elevation="2">
           <v-card-title class="d-flex align-center">
-            <v-icon class="mr-3" color="purple">mdi-tag-multiple</v-icon>
-            <span>Gestión de Categorías</span>
+           
             <v-spacer></v-spacer>
             <v-btn icon="mdi-close" variant="text" @click="cambiarVista('inicio')" />
           </v-card-title>

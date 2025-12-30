@@ -6,7 +6,7 @@
         <div class="d-flex align-center mb-6">
           <v-icon icon="mdi-tag-multiple" size="32" color="primary" class="mr-3"></v-icon>
           <div>
-            <h1 class="text-h4 font-weight-bold">Gestión de Categorías</h1>
+            <h1 class="text-h5 font-weight-bold">Gestión de Categorías</h1>
             <p class="text-subtitle-1 text-grey">Crea, edita y administra las categorías del inventario</p>
           </div>
         </div>
@@ -17,10 +17,12 @@
       <!-- Formulario de crear/editar -->
       <v-col cols="12" md="5">
         <FormCategoria
+          ref="formCategoriaRef"
           :categoriaEditar="categoriaSeleccionada"
           @categoria-creada="handleCategoriaCreada"
           @categoria-actualizada="handleCategoriaActualizada"
           @cancelar="handleCancelar"
+          @notificacion="mostrarNotificacion"
         />
       </v-col>
 
@@ -78,6 +80,7 @@ const {
 } = useCategorias();
 
 // Refs locales
+const formCategoriaRef = ref(null);
 const categoriaSeleccionada = ref(null);
 const snackbar = ref({
   show: false,
@@ -93,13 +96,15 @@ onMounted(async () => {
 
 // Handlers
 const handleCategoriaCreada = async (nuevaCategoria) => {
-  const resultado = await crearCategoria(nuevaCategoria);
-  
-  if (resultado.success) {
-    mostrarNotificacion('Categoría creada exitosamente', 'success', 'mdi-check-circle');
-  } else {
+  try {
+    const resultado = await crearCategoria(nuevaCategoria);
+    
+    if (resultado) {
+      // Formulario ya se limpia automáticamente en modo creación
+    }
+  } catch (error) {
     mostrarNotificacion(
-      resultado.error || 'Error al crear categoría', 
+      error.message || 'Error al crear categoría', 
       'error', 
       'mdi-alert-circle'
     );
@@ -109,17 +114,21 @@ const handleCategoriaCreada = async (nuevaCategoria) => {
 const handleCategoriaActualizada = async (categoriaActualizada) => {
   if (!categoriaSeleccionada.value) return;
   
-  const resultado = await actualizarCategoria(
-    categoriaSeleccionada.value.id, 
-    categoriaActualizada
-  );
-  
-  if (resultado.success) {
-    mostrarNotificacion('Categoría actualizada exitosamente', 'success', 'mdi-check-circle');
-    categoriaSeleccionada.value = null;
-  } else {
+  try {
+    const resultado = await actualizarCategoria(
+      categoriaActualizada.id, 
+      categoriaActualizada
+    );
+    
+    if (resultado) {
+      mostrarNotificacion('Categoría actualizada exitosamente', 'success', 'mdi-check-circle');
+      categoriaSeleccionada.value = null;
+      // Limpiar formulario después de editar
+      formCategoriaRef.value?.limpiarFormulario();
+    }
+  } catch (error) {
     mostrarNotificacion(
-      resultado.error || 'Error al actualizar categoría', 
+      error.message || 'Error al actualizar categoría', 
       'error', 
       'mdi-alert-circle'
     );
@@ -132,13 +141,12 @@ const handleEditar = (categoria) => {
 };
 
 const handleEliminar = async (categoriaId) => {
-  const resultado = await eliminarCategoria(categoriaId);
-  
-  if (resultado.success) {
+  try {
+    await eliminarCategoria(categoriaId);
     mostrarNotificacion('Categoría eliminada exitosamente', 'success', 'mdi-check-circle');
-  } else {
+  } catch (error) {
     mostrarNotificacion(
-      resultado.error || 'Error al eliminar categoría', 
+      error.message || 'Error al eliminar categoría', 
       'error', 
       'mdi-alert-circle'
     );
@@ -158,4 +166,5 @@ const mostrarNotificacion = (mensaje, color, icon) => {
     icon
   };
 };
+
 </script>

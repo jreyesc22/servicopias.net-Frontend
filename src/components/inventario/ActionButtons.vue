@@ -24,7 +24,6 @@
           :disabled="!formValido || duplicadoError"
           size="large"
           elevation="2"
-          @click="$emit('save')"
         >
           {{ loading ? 'Guardando...' : 'Guardar' }}
         </v-btn>

@@ -8,15 +8,35 @@ const API_URL = process.env.VUE_APP_API_URL;
 
 class OrdenesService {
   /**
-   * Obtener todas las órdenes con paginación
-   * @param {Object} params - Parámetros de paginación
+   * Obtener todas las órdenes con paginación y filtros
+   * @param {Object} params - Parámetros de paginación y filtros
+   * @param {number} params.page - Página actual
+   * @param {number} params.limit - Registros por página
+   * @param {number} params.diasAtras - Días hacia atrás (default: 60)
+   * @param {string} params.estado - Filtrar por estado
    * @returns {Promise<Object>}
    */
-  async getAll(params) {
-    if (!params) params = {};
-    const { page = 1, limit = 100 } = params;
-    const queryParams = new URLSearchParams({ page, limit }).toString();
-    const { data } = await axios.get(`${API_URL}/ordenes/all?${queryParams}`);
+  async getAll(params = {}) {
+    const queryParams = new URLSearchParams();
+    
+    // Siempre incluir filtro de días (default: 60 días)
+    const diasAtras = params.diasAtras !== undefined ? params.diasAtras : 60;
+    queryParams.append('diasAtras', diasAtras);
+    
+    // Filtro opcional por estado
+    if (params.estado) {
+      queryParams.append('estado', params.estado);
+    }
+    
+    // Paginación opcional
+    if (params.page !== null && params.page !== undefined) {
+      queryParams.append('page', params.page);
+    }
+    if (params.limit !== null && params.limit !== undefined) {
+      queryParams.append('limit', params.limit);
+    }
+    
+    const { data } = await axios.get(`${API_URL}/ordenes/all?${queryParams.toString()}`);
     return data;
   }
 

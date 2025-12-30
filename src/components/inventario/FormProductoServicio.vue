@@ -1,18 +1,14 @@
 <template>
-  <v-container fluid class="form-container">
-    <v-card class="form-card" elevation="3">
-      <!-- Header -->
-      <FormHeader 
-        :item="item" 
-        :tipo="localItem.tipo" 
-      />
-
-      <v-divider />
-
-      <v-card-text class="form-content">
-        <v-form ref="form" v-model="formValido" @submit.prevent="guardar">
-          
-          <!-- Información Básica -->
+  <v-container fluid class="pa-0">
+    <v-form ref="form" v-model="formValido" @submit.prevent="guardar">
+      
+      <!-- Información Básica -->
+      <v-card class="mb-4" elevation="2">
+        <v-card-title class="bg-primary text-white d-flex align-center">
+          <v-icon class="mr-3">mdi-information-outline</v-icon>
+          <span>Información Básica</span>
+        </v-card-title>
+        <v-card-text class="pa-4">
           <BasicInfoSection
             :local-item="localItem"
             :categorias="categorias"
@@ -22,14 +18,31 @@
             :rules="validationRules"
             @validate-name="handleValidateName"
           />
+        </v-card-text>
+      </v-card>
 
-          <!-- Detalles Adicionales -->
+      <!-- Detalles Adicionales -->
+      <v-card class="mb-4" elevation="2">
+        <v-card-title class="bg-info text-white d-flex align-center">
+          <v-icon class="mr-3">mdi-text-box-multiple-outline</v-icon>
+          <span>Detalles Adicionales</span>
+        </v-card-title>
+        <v-card-text class="pa-4">
           <DetailsSection
             :local-item="localItem"
             :loading="loading"
+            :categorias="categorias"
           />
+        </v-card-text>
+      </v-card>
 
-          <!-- Archivos -->
+      <!-- Archivos -->
+      <v-card class="mb-4" elevation="2">
+        <v-card-title class="bg-success text-white d-flex align-center">
+          <v-icon class="mr-3">mdi-file-upload-outline</v-icon>
+          <span>Archivos Adjuntos</span>
+        </v-card-title>
+        <v-card-text class="pa-4">
           <FileUploadSection
             :local-item="localItem"
             :archivos="archivos"
@@ -40,8 +53,12 @@
             @remove-file="handleRemoveFile"
             @show-message="showMessage"
           />
+        </v-card-text>
+      </v-card>
 
-          <!-- Botones -->
+      <!-- Botones de Acción -->
+      <v-card elevation="2">
+        <v-card-text class="pa-4">
           <ActionButtons
             :loading="loading"
             :form-valido="formValido"
@@ -49,12 +66,12 @@
             @save="guardar"
             @cancel="$emit('cerrar')"
           />
-        </v-form>
-      </v-card-text>
+        </v-card-text>
+      </v-card>
+    </v-form>
 
-      <!-- Snackbars -->
-      <NotificationSnackbars :snackbar="snackbar" />
-    </v-card>
+    <!-- Snackbars -->
+    <NotificationSnackbars :snackbar="snackbar" />
   </v-container>
 </template>
 
@@ -69,9 +86,8 @@ import { useApiService } from '../composables/useApiService'
 import { useNotifications } from '../composables/useNotifications'
 
 // Importar componentes 
-import FormHeader from './FormHeader.vue'
 import BasicInfoSection from './BasicInfoSection.vue'
-import DetailsSection from './detailsSection.vue'  // ← CAMBIO AQUÍ
+import DetailsSection from './detailsSection.vue'
 import FileUploadSection from './FileUploadSection.vue'
 import ActionButtons from './ActionButtons.vue'
 import NotificationSnackbars from './NotificationSnackbars.vue'
@@ -79,7 +95,6 @@ import NotificationSnackbars from './NotificationSnackbars.vue'
 export default {
   name: 'FormProductoServicio',
   components: {
-    FormHeader,
     BasicInfoSection,
     DetailsSection,
     FileUploadSection,
@@ -137,7 +152,7 @@ export default {
       tipo: 'producto',
       precio: 0,
       stock: 0,
-      codigo_barras: '',
+      codigo_barras: null,
       descripcion: '',
       imagen_url: '',
       pdf_url: '',
@@ -151,7 +166,7 @@ export default {
         tipo: 'producto',
         precio: 0,
         stock: 0,
-        codigo_barras: '',
+        codigo_barras: null,
         descripcion: '',
         imagen_url: '',
         pdf_url: '',
@@ -273,89 +288,52 @@ export default {
 </script>
 
 <style scoped>
-/* Solo los estilos específicos del componente principal */
-.form-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 2rem 1rem;
-}
-
-.form-card {
-  max-width: 1200px;
-  margin: 0 auto;
-  border-radius: 12px !important;
-  overflow: hidden;
-}
-
-.form-header {
-  background: linear-gradient(135deg, #afec08 0%, #2ed156 100%);
-  color: white !important;
-  padding: 1.5rem 2rem;
-}
-
-.form-header .v-icon {
-  color: white !important;
-}
-
-.form-content {
-  padding: 2rem;
-  background: #fafafa;
-}
-
-.form-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* Estilos consistentes con el resto del frontend */
+.v-card {
+  border-radius: 8px !important;
   transition: all 0.3s ease;
 }
 
-.form-section:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  transform: translateY(-2px);
+.v-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.section-title {
-  color: #2b4968;
-  font-size: 1.2rem;
+.v-card-title {
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e3f2fd;
+  padding: 1rem 1.5rem;
+}
+
+.v-card-title .v-icon {
+  color: white !important;
+}
+
+/* Colores de secciones */
+.bg-primary {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+}
+
+.bg-info {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+}
+
+.text-white {
+  color: white !important;
 }
 
 /* Responsive */
 @media (max-width: 767px) {
-  .form-container {
-    padding: 1rem 0.5rem;
+  .v-card-title {
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem;
   }
   
-  .form-header {
-    padding: 1rem;
-    text-align: center;
-  }
-  
-  .form-header .text-h5 {
-    font-size: 1.1rem !important;
-  }
-  
-  .form-content {
-    padding: 1rem;
-  }
-  
-  .form-section {
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .section-title {
-    font-size: 1rem;
-    flex-direction: column;
-    text-align: center;
-    gap: 0.5rem;
+  .v-card-text {
+    padding: 1rem !important;
   }
 }
 </style>

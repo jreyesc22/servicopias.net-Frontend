@@ -46,6 +46,29 @@
                 <v-icon start>mdi-factory</v-icon>
                 {{ ordenesEnProduccion }} En Producción
               </v-chip>
+
+              <v-divider vertical class="mx-2" />
+
+              <!-- Estadísticas de Origen -->
+              <v-chip 
+                :color="getOrigenColor('local')" 
+                variant="elevated"
+                size="large"
+                class="stat-chip"
+              >
+                <v-icon start>mdi-store</v-icon>
+                {{ ordenesLocales }} Local
+              </v-chip>
+
+              <v-chip 
+                :color="getOrigenColor('web')" 
+                variant="elevated"
+                size="large"
+                class="stat-chip"
+              >
+                <v-icon start>mdi-web</v-icon>
+                {{ ordenesWeb }} Web
+              </v-chip>
             </div>
             
             <!-- Botón actualizar -->
@@ -69,7 +92,8 @@
     <v-card class="mb-4 filters-card" elevation="1">
       <v-card-text class="py-3">
         <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-          <div class="d-flex align-center gap-3">
+          <div class="d-flex align-center gap-2 flex-wrap">
+            <!-- Filtro por Estado -->
             <v-chip-group v-model="filtroEstado" mandatory class="filter-chips">
               <v-chip 
                 value="todos" 
@@ -91,6 +115,22 @@
               >
                 <v-icon start>{{ getEstadoIcono(estado.value) }}</v-icon>
                 {{ estado.title }}
+              </v-chip>
+            </v-chip-group>
+
+            <!-- Filtro por Origen -->
+            <v-chip-group v-model="filtroOrigen" mandatory class="filter-chips">
+              <v-chip 
+                v-for="origen in origenesDisponibles" 
+                :key="origen.value"
+                :value="origen.value"
+                :color="getOrigenColor(origen.value)"
+                variant="outlined"
+                size="large"
+                filter
+              >
+                <v-icon start>{{ getOrigenIcono(origen.value) }}</v-icon>
+                {{ origen.title }}
               </v-chip>
             </v-chip-group>
           </div>
@@ -149,6 +189,19 @@
               {{ item.cliente_telefono }}
             </div>
           </div>
+        </template>
+
+        <!-- Origen -->
+        <template #item.origen="{ item }">
+          <v-chip
+            :color="getOrigenColor(item.origen)"
+            size="large"
+            variant="tonal"
+            class="origen-chip"
+          >
+            <v-icon start size="20">{{ getOrigenIcono(item.origen) }}</v-icon>
+            {{ item.origen === 'local' ? 'Local' : 'Web' }}
+          </v-chip>
         </template>
 
         <!-- Fecha -->
@@ -288,252 +341,183 @@
 </template>
 
 <script>
-import axios from 'axios'
-import OrdenItemsModal from './OrdenItemsmodal.vue'
+import { ref } from 'vue';
+import OrdenItemsModal from './OrdenItemsmodal.vue';
+import { useTallerOrdenes } from '@/components/composables/useTallerOrdenes';
 
 export default {
   name: 'OrdenTaller',
   components: {
     OrdenItemsModal
   },
-  data() {
-    return {
-      ordenes: [],
-      cargando: false,
-      itemsPorPagina: 20,
-      busqueda: '',
-      filtroEstado: 'todos',
-      
-      // Modal
-      dialogItems: false,
-      ordenSeleccionada: null,
-      
-      snackbar: {
-        show: false,
-        message: '',
-        color: 'success'
-      },
-      
-      // Headers optimizados
-      headersTablet: [
-        { title: 'ID', key: 'id', width: '100px', sortable: true },
-        { title: 'Cliente', key: 'cliente', width: '280px', sortable: true },
-        { title: 'Fecha', key: 'fecha', width: '180px', sortable: true },
-        { title: 'Estado', key: 'estado', width: '200px', sortable: true },
-        { title: 'Acciones', key: 'acciones', sortable: false, width: '180px', align: 'center' }
-      ],
-      
-      estadosDisponibles: [
-        { title: 'Pendiente', value: 'pendiente' },
-        { title: 'En Proceso', value: 'en proceso' },
-        { title: 'En Producción', value: 'en produccion' },
-        { title: 'Finalizado', value: 'finalizado' },
-        { title: 'Entregado', value: 'entregado' },
-        { title: 'Cancelado', value: 'cancelado' }
-      ]
-    }
-  },
   
-  computed: {
-    ordenesPendientes() {
-      return this.ordenes.filter(o => o.estado === 'pendiente').length
-    },
-    
-    ordenesEnProceso() {
-      return this.ordenes.filter(o => o.estado === 'en proceso').length
-    },
-    
-    ordenesEnProduccion() {
-      return this.ordenes.filter(o => o.estado === 'en produccion').length
-    },
-    
-    ordenesFiltradas() {
-      let filtradas = this.ordenes
-      
-      if (this.filtroEstado && this.filtroEstado !== 'todos') {
-        filtradas = filtradas.filter(o => o.estado === this.filtroEstado)
-      }
-      
-      return filtradas
-    }
-  },
-  
-  mounted() {
-    this.obtenerOrdenes()
-  },
-  
-  methods: {
-    async obtenerOrdenes() {
-      this.cargando = true
-      try {
-        const res = await axios.get(`${process.env.VUE_APP_API_URL}/ordenes/all`)
-        this.ordenes = res.data
-          .filter(o =>
-            ['pendiente', 'en proceso', 'en produccion'].includes(o.estado)
-          )
-          .map(o => ({
-            ...o,
-            estadoOriginal: o.estado,
-            estadoCambiado: false,
-            loading: false
-          }))
-      } catch (error) {
-        this.mostrarNotificacion('Error al cargar órdenes', 'error')
-      } finally {
-        this.cargando = false
-      }
-    },
+  setup() {
+    // Usar el composable
+    const {
+      // Estado
+      ordenes,
+      cargando,
+      busqueda,
+      filtroEstado,
+      filtroOrigen,
 
-    async verItems(orden) {
+      // Configuración
+      estadosDisponibles,
+      origenesDisponibles,
+
+      // Computed
+      ordenesPendientes,
+      ordenesEnProceso,
+      ordenesEnProduccion,
+      ordenesLocales,
+      ordenesWeb,
+      ordenesFiltradas,
+
+      // Métodos
+      obtenerOrdenes,
+      obtenerOrdenCompleta,
+      marcarEstadoCambiado,
+      guardarEstado,
+      cambiarEstadoRapido,
+
+      // Helpers
+      getEstadoColor,
+      getEstadoIcono,
+      getOrigenColor,
+      getOrigenIcono,
+      getAccionRapida,
+      formatearFecha,
+      calcularDiasTranscurridos
+    } = useTallerOrdenes();
+
+    // Estado local del componente
+    const itemsPorPagina = ref(20);
+    const dialogItems = ref(false);
+    const ordenSeleccionada = ref(null);
+    const snackbar = ref({
+      show: false,
+      message: '',
+      color: 'success'
+    });
+
+    // Headers de la tabla
+    const headersTablet = [
+      { title: 'ID', key: 'id', width: '100px', sortable: true },
+      { title: 'Cliente', key: 'cliente', width: '240px', sortable: true },
+      { title: 'Origen', key: 'origen', width: '140px', sortable: true },
+      { title: 'Fecha', key: 'fecha', width: '180px', sortable: true },
+      { title: 'Estado', key: 'estado', width: '200px', sortable: true },
+      { title: 'Acciones', key: 'acciones', sortable: false, width: '180px', align: 'center' }
+    ];
+
+    // Métodos locales
+    const mostrarNotificacion = (mensaje, color = 'success') => {
+      snackbar.value.message = mensaje;
+      snackbar.value.color = color;
+      snackbar.value.show = true;
+    };
+
+    const verItems = async (orden) => {
       try {
         if (!orden.items || orden.items.length === 0) {
-          this.cargando = true
-          const res = await axios.get(`${process.env.VUE_APP_API_URL}/ordenes/${orden.id}`)
-          orden.items = res.data.items || []
+          cargando.value = true;
+          const ordenCompleta = await obtenerOrdenCompleta(orden.id);
+          orden.items = ordenCompleta.items || [];
         }
         
-        this.ordenSeleccionada = orden
-        this.dialogItems = true
+        ordenSeleccionada.value = orden;
+        dialogItems.value = true;
         
       } catch (error) {
-        console.error('Error al cargar items:', error)
-        this.mostrarNotificacion('Error al cargar los items de la orden', 'error')
+        console.error('Error al cargar items:', error);
+        mostrarNotificacion('Error al cargar los items de la orden', 'error');
       } finally {
-        this.cargando = false
+        cargando.value = false;
       }
-    },
+    };
 
-    onPDFDescargado(resultado) {
+    const onPDFDescargado = (resultado) => {
       if (resultado.success) {
-        this.mostrarNotificacion(`PDF descargado: ${resultado.filename}`, 'success')
+        mostrarNotificacion(`PDF descargado: ${resultado.filename}`, 'success');
       } else {
-        this.mostrarNotificacion(`Error al descargar PDF: ${resultado.error}`, 'error')
+        mostrarNotificacion(`Error al descargar PDF: ${resultado.error}`, 'error');
       }
-    },
+    };
 
-    onEstadoChange(orden) {
-      orden.estadoCambiado = orden.estado !== orden.estadoOriginal
-    },
+    const onEstadoChange = (orden) => {
+      marcarEstadoCambiado(orden);
+    };
 
-    async guardarEstado(orden) {
+    const handleGuardarEstado = async (orden) => {
       try {
-        orden.loading = true
-        await axios.put(`${process.env.VUE_APP_API_URL}/ordenes/update/${orden.id}`, {
-          estado: orden.estado,
-          id_usuario: 1
-        })
-
-        orden.estadoOriginal = orden.estado
-        orden.estadoCambiado = false
-        orden.loading = false
-
-        this.mostrarNotificacion('Estado actualizado correctamente')
-
-        if (!['pendiente', 'en proceso', 'en produccion'].includes(orden.estado)) {
-          this.ordenes = this.ordenes.filter(o => o.id !== orden.id)
-        }
-      } catch (e) {
-        orden.loading = false
-        this.mostrarNotificacion('Error al guardar estado', 'error')
-      }
-    },
-
-    async cambiarEstadoRapido(orden, nuevoEstado) {
-      orden.loading = true
-      try {
-        await axios.put(`${process.env.VUE_APP_API_URL}/ordenes/update/${orden.id}`, {
-          estado: nuevoEstado,
-          id_usuario: 1
-        })
-
-        this.mostrarNotificacion(`Estado cambiado a ${nuevoEstado}`)
-
-        const activos = ['pendiente', 'en proceso', 'en produccion']
-        if (!activos.includes(nuevoEstado)) {
-          this.ordenes = this.ordenes.filter(o => o.id !== orden.id)
-        } else {
-          orden.estado = nuevoEstado
-          orden.estadoOriginal = nuevoEstado
-          orden.estadoCambiado = false
-          orden.loading = false
-        }
+        await guardarEstado(orden);
+        mostrarNotificacion('Estado actualizado correctamente');
       } catch (error) {
-        orden.loading = false
-        this.mostrarNotificacion('Error al cambiar estado', 'error')
+        mostrarNotificacion(error.message || 'Error al guardar estado', 'error');
       }
-    },
+    };
 
-    // Método optimizado para obtener la acción rápida según el estado
-    getAccionRapida(estado) {
-      const acciones = {
-        'pendiente': {
-          nuevoEstado: 'en proceso',
-          icon: 'mdi-cogs',
-          color: 'blue',
-          tooltip: 'Procesar'
-        },
-        'en proceso': {
-          nuevoEstado: 'en produccion',
-          icon: 'mdi-factory',
-          color: 'purple',
-          tooltip: 'Enviar a Producción'
-        },
-        'en produccion': {
-          nuevoEstado: 'finalizado',
-          icon: 'mdi-check-circle-outline',
-          color: 'green',
-          tooltip: 'Finalizar'
-        }
+    const handleCambiarEstadoRapido = async (orden, nuevoEstado) => {
+      try {
+        await cambiarEstadoRapido(orden, nuevoEstado);
+        mostrarNotificacion(`Estado cambiado a ${nuevoEstado}`);
+      } catch (error) {
+        mostrarNotificacion(error.message || 'Error al cambiar estado', 'error');
       }
-      return acciones[estado] || null
-    },
+    };
 
-    formatearFecha(fecha) {
-      return new Date(fecha).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })
-    },
+    // Cargar órdenes al montar
+    obtenerOrdenes().catch(error => {
+      mostrarNotificacion('Error al cargar órdenes', 'error');
+    });
 
-    calcularDiasTranscurridos(fecha) {
-      const dias = Math.floor((new Date() - new Date(fecha)) / (1000 * 60 * 60 * 24))
-      if (dias === 0) return 'Hoy'
-      if (dias === 1) return 'Ayer'
-      return `Hace ${dias} días`
-    },
+    return {
+      // Estado del composable
+      ordenes,
+      cargando,
+      busqueda,
+      filtroEstado,
+      filtroOrigen,
 
-    getEstadoColor(estado) {
-      const colores = {
-        'pendiente': 'orange',
-        'en proceso': 'blue',
-        'en produccion': 'purple',
-        'finalizado': 'green',
-        'entregado': 'success',
-        'cancelado': 'red'
-      }
-      return colores[estado] || 'grey'
-    },
+      // Configuración
+      estadosDisponibles,
+      origenesDisponibles,
 
-    getEstadoIcono(estado) {
-      const iconos = {
-        'pendiente': 'mdi-clock-outline',
-        'en proceso': 'mdi-cogs',
-        'en produccion': 'mdi-factory',
-        'finalizado': 'mdi-check-circle-outline',
-        'entregado': 'mdi-truck-check',
-        'cancelado': 'mdi-cancel'
-      }
-      return iconos[estado] || 'mdi-help-circle-outline'
-    },
+      // Computed
+      ordenesPendientes,
+      ordenesEnProceso,
+      ordenesEnProduccion,
+      ordenesLocales,
+      ordenesWeb,
+      ordenesFiltradas,
 
-    mostrarNotificacion(mensaje, color = 'success') {
-      this.snackbar.message = mensaje
-      this.snackbar.color = color
-      this.snackbar.show = true
-    }
+      // Estado local
+      itemsPorPagina,
+      dialogItems,
+      ordenSeleccionada,
+      snackbar,
+      headersTablet,
+
+      // Métodos del composable
+      obtenerOrdenes,
+      getEstadoColor,
+      getEstadoIcono,
+      getOrigenColor,
+      getOrigenIcono,
+      getAccionRapida,
+      formatearFecha,
+      calcularDiasTranscurridos,
+
+      // Métodos locales
+      verItems,
+      onPDFDescargado,
+      onEstadoChange,
+      guardarEstado: handleGuardarEstado,
+      cambiarEstadoRapido: handleCambiarEstadoRapido,
+      mostrarNotificacion
+    };
   }
-}
+};
 </script>
 
 <style scoped>
@@ -612,6 +596,11 @@ export default {
 }
 
 .estado-chip {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.origen-chip {
   font-weight: 600;
   text-transform: capitalize;
 }

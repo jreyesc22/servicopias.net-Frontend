@@ -105,25 +105,92 @@ class ApiService {
 
   // === MÉTODOS ESPECÍFICOS DE ÓRDENES ===
 
-  // Obtener órdenes por rango de fechas (usa findByDateRange)
-  async getOrdenesByDateRange(fechaInicio, fechaFin, filtros = {}) {
-    const params = {
-      fechaInicio,
-      fechaFin,
-      ...filtros
-    }
-    
-    return this.get('/ordenes/dashboard/range', params)
+  // Obtener todas las órdenes con paginación
+  async getAllOrdenes(page = 1, limit = 100) {
+    const params = { page, limit }
+    return this.get('/ordenes/all', params)
   }
 
-  // Obtener resumen por rango de fechas (usa getResumenByDateRange)
-  async getResumenByDateRange(fechaInicio, fechaFin) {
-    const params = {
-      fechaInicio,
-      fechaFin
+  // Buscar órdenes por criterios
+  async buscarOrdenes(criterios = {}) {
+    return this.get('/ordenes/search', criterios)
+  }
+
+  // === MÉTODOS DE ESTADÍSTICAS (NUEVO CONTROLADOR) ===
+
+  // Obtener estadísticas generales
+  async getEstadisticasGenerales() {
+    return this.get('/estadisticas/generales')
+  }
+
+  // Obtener órdenes por rango de fechas con estadísticas
+  async getOrdenesByDateRange(params = {}) {
+    // Normalizar parámetros: aceptar tanto inicio/fin como fechaInicio/fechaFin
+    const normalizedParams = {
+      fechaInicio: params.inicio || params.fechaInicio,
+      fechaFin: params.fin || params.fechaFin,
+      ...params
+    }
+    delete normalizedParams.inicio
+    delete normalizedParams.fin
+    
+    return this.get('/estadisticas/date-range', normalizedParams)
+  }
+
+  // Obtener resumen por rango de fechas (solo estadísticas, sin órdenes)
+  async getResumenByDateRange(params = {}) {
+    // Normalizar parámetros y limpiar undefined
+    const normalizedParams = {}
+    
+    if (params.inicio || params.fechaInicio) {
+      normalizedParams.fechaInicio = params.inicio || params.fechaInicio
     }
     
-    return this.get('/ordenes/resumen-date-range', params)
+    if (params.fin || params.fechaFin) {
+      normalizedParams.fechaFin = params.fin || params.fechaFin
+    }
+    
+    return this.get('/estadisticas/resumen-date-range', normalizedParams)
+  }
+
+  // Obtener productos más vendidos
+  async getProductosMasVendidos(params = {}) {
+    // Normalizar parámetros y limpiar undefined
+    const normalizedParams = {
+      limit: parseInt(params.limit) || 10
+    }
+    
+    if (params.inicio || params.fechaInicio) {
+      normalizedParams.fechaInicio = params.inicio || params.fechaInicio
+    }
+    
+    if (params.fin || params.fechaFin) {
+      normalizedParams.fechaFin = params.fin || params.fechaFin
+    }
+    
+    return this.get('/estadisticas/productos-mas-vendidos', normalizedParams)
+  }
+
+  // Obtener productos más vendidos por categoría
+  async getProductosPorCategoria(params = {}) {
+    const normalizedParams = {
+      limit: params.limit || 5,
+      fechaInicio: params.inicio || params.fechaInicio,
+      fechaFin: params.fin || params.fechaFin
+    }
+    
+    return this.get('/estadisticas/productos-por-categoria', normalizedParams)
+  }
+
+  // Obtener estadísticas de una categoría específica
+  async getEstadisticasCategoria(categoriaId, params = {}) {
+    const normalizedParams = {
+      limit: params.limit || 10,
+      fechaInicio: params.inicio || params.fechaInicio,
+      fechaFin: params.fin || params.fechaFin
+    }
+    
+    return this.get(`/estadisticas/categoria/${categoriaId}`, normalizedParams)
   }
 
   // Obtener órdenes del mes actual
@@ -134,10 +201,10 @@ class ApiService {
     const fechaFin = new Date()
     fechaFin.setMonth(fechaFin.getMonth() + 1, 0) // Último día del mes
     
-    return this.getResumenByDateRange(
-      this.formatDate(fechaInicio),
-      this.formatDate(fechaFin)
-    )
+    return this.getResumenByDateRange({
+      inicio: this.formatDate(fechaInicio),
+      fin: this.formatDate(fechaFin)
+    })
   }
 
   // Obtener órdenes de los últimos N días
@@ -146,16 +213,16 @@ class ApiService {
     const fechaInicio = new Date()
     fechaInicio.setDate(fechaInicio.getDate() - dias)
     
-    return this.getResumenByDateRange(
-      this.formatDate(fechaInicio),
-      this.formatDate(fechaFin)
-    )
+    return this.getResumenByDateRange({
+      inicio: this.formatDate(fechaInicio),
+      fin: this.formatDate(fechaFin)
+    })
   }
 
   // Obtener órdenes de hoy
   async getOrdenesHoy() {
     const hoy = this.formatDate(new Date())
-    return this.getOrdenesByDateRange(hoy, hoy)
+    return this.getOrdenesByDateRange({ inicio: hoy, fin: hoy })
   }
 
   // Método utilitario para formatear fechas
@@ -165,37 +232,30 @@ class ApiService {
 
   // Obtener datos para gráfico de tendencias
   async getTendenciasVentas(periodo = 'mensual') {
-    let fechaInicio, fechaFin
+    const { inicio, fin } = this.calcularRangoPeriodo(periodo)
+    return this.getResumenByDateRange({ inicio, fin })
+  }
+
+  // Calcular rango de fechas según periodo
+  calcularRangoPeriodo(periodo) {
+    const fechaFin = new Date()
+    const fechaInicio = new Date()
     
-    switch (periodo) {
-      case 'semanal':
-        fechaInicio = new Date()
-        fechaInicio.setDate(fechaInicio.getDate() - 7)
-        fechaFin = new Date()
-        break
-        
-      case 'mensual':
-        fechaInicio = new Date()
-        fechaInicio.setMonth(fechaInicio.getMonth() - 1)
-        fechaFin = new Date()
-        break
-        
-      case 'trimestral':
-        fechaInicio = new Date()
-        fechaInicio.setMonth(fechaInicio.getMonth() - 3)
-        fechaFin = new Date()
-        break
-        
-      default:
-        fechaInicio = new Date()
-        fechaInicio.setMonth(fechaInicio.getMonth() - 1)
-        fechaFin = new Date()
+    const diasPorPeriodo = {
+      'semanal': 7,
+      'mensual': 30,
+      'trimestral': 90,
+      'semestral': 180,
+      'anual': 365
     }
     
-    return this.getResumenByDateRange(
-      this.formatDate(fechaInicio),
-      this.formatDate(fechaFin)
-    )
+    const dias = diasPorPeriodo[periodo] || 30
+    fechaInicio.setDate(fechaInicio.getDate() - dias)
+    
+    return {
+      inicio: this.formatDate(fechaInicio),
+      fin: this.formatDate(fechaFin)
+    }
   }
 
   // === MÉTODOS ADICIONALES DE ÓRDENES ===
@@ -222,12 +282,7 @@ class ApiService {
 
   // Cambiar estado de orden
   async cambiarEstadoOrden(id, nuevoEstado) {
-    return this.put(`/ordenes/${id}/estado`, { estado: nuevoEstado })
-  }
-
-  // Obtener estadísticas generales
-  async getEstadisticasGenerales() {
-    return this.get('/ordenes/estadisticas')
+    return this.put(`/ordenes/upstado/${id}`, { estado: nuevoEstado })
   }
 
   // Exportar órdenes

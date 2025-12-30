@@ -71,8 +71,9 @@ export function useCategorias() {
       return data;
     } catch (err) {
       console.error('Error al crear categoría:', err);
-      error.value = err.response?.data?.error || 'Error al crear categoría';
-      throw err;
+      const mensajeError = err.response?.data?.error || err.response?.data?.message || 'Error al crear categoría';
+      error.value = mensajeError;
+      throw new Error(mensajeError);
     } finally {
       loading.value = false;
     }
@@ -97,11 +98,12 @@ export function useCategorias() {
     error.value = null;
 
     try {
-      const { data } = await axios.put(`${API_URL}/categorias/update/${id}`, categoria); //falta el metodo update en el backend
+      const { data } = await axios.put(`${API_URL}/categorias/update/${id}`, categoria);
       
       // Actualizar en cache local
       const index = categorias.value.findIndex(c => c.id === id);
       if (index !== -1) {
+        // Actualizar con los datos retornados del servidor
         categorias.value[index] = { ...categorias.value[index], ...data };
       } else {
         // Si no está en cache, recargar
@@ -111,8 +113,9 @@ export function useCategorias() {
       return data;
     } catch (err) {
       console.error('Error al actualizar categoría:', err);
-      error.value = err.response?.data?.error || 'Error al actualizar categoría';
-      throw err;
+      const mensajeError = err.response?.data?.error || err.response?.data?.message || 'Error al actualizar categoría';
+      error.value = mensajeError;
+      throw new Error(mensajeError);
     } finally {
       loading.value = false;
     }
@@ -138,8 +141,9 @@ export function useCategorias() {
       categorias.value = categorias.value.filter(c => c.id !== id);
     } catch (err) {
       console.error('Error al eliminar categoría:', err);
-      error.value = err.response?.data?.error || 'Error al eliminar categoría';
-      throw err;
+      const mensajeError = err.response?.data?.error || err.response?.data?.message || 'Error al eliminar categoría';
+      error.value = mensajeError;
+      throw new Error(mensajeError);
     } finally {
       loading.value = false;
     }

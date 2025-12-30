@@ -33,28 +33,6 @@
           clearable
         />
 
-        <v-alert
-          v-if="mensajeError"
-          type="error"
-          variant="tonal"
-          closable
-          @click:close="mensajeError = ''"
-          class="mb-4"
-        >
-          {{ mensajeError }}
-        </v-alert>
-
-        <v-alert
-          v-if="mensajeExito"
-          type="success"
-          variant="tonal"
-          closable
-          @click:close="mensajeExito = ''"
-          class="mb-4"
-        >
-          {{ mensajeExito }}
-        </v-alert>
-
         <div class="d-flex justify-end gap-2">
           <v-btn
             v-if="modoEdicion"
@@ -93,13 +71,11 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['categoria-creada', 'categoria-actualizada', 'cancelar']);
+const emit = defineEmits(['categoria-creada', 'categoria-actualizada', 'cancelar', 'notificacion']);
 
 // Refs
 const formRef = ref(null);
 const procesando = ref(false);
-const mensajeError = ref('');
-const mensajeExito = ref('');
 
 // Form data
 const formData = ref({
@@ -129,8 +105,6 @@ watch(() => props.categoriaEditar, (nuevaCategoria) => {
       nombre: nuevaCategoria.nombre || '',
       descripcion: nuevaCategoria.descripcion || ''
     };
-    mensajeError.value = '';
-    mensajeExito.value = '';
   }
 }, { immediate: true });
 
@@ -141,8 +115,6 @@ const handleSubmit = async () => {
   if (!valid) return;
 
   procesando.value = true;
-  mensajeError.value = '';
-  mensajeExito.value = '';
 
   try {
     const datosCategoria = {
@@ -156,24 +128,21 @@ const handleSubmit = async () => {
         id: props.categoriaEditar.id,
         ...datosCategoria
       });
-      mensajeExito.value = 'Categoría actualizada correctamente';
     } else {
       // Emitir evento para crear
       emit('categoria-creada', datosCategoria);
-      mensajeExito.value = 'Categoría creada correctamente';
       
       // Limpiar formulario solo si es creación
       limpiarFormulario();
     }
 
-    // Ocultar mensaje de éxito después de 3 segundos
-    setTimeout(() => {
-      mensajeExito.value = '';
-    }, 3000);
-
   } catch (error) {
     console.error('Error en formulario:', error);
-    mensajeError.value = error.message || 'Error al procesar la categoría';
+    emit('notificacion', {
+      mensaje: error.message || 'Error al procesar la categoría',
+      color: 'error',
+      icon: 'mdi-alert-circle'
+    });
   } finally {
     procesando.value = false;
   }
@@ -185,7 +154,6 @@ const limpiarFormulario = () => {
     descripcion: ''
   };
   formRef.value?.resetValidation();
-  mensajeError.value = '';
 };
 
 const cancelarEdicion = () => {
@@ -195,9 +163,7 @@ const cancelarEdicion = () => {
 
 // Exponer métodos para uso externo
 defineExpose({
-  limpiarFormulario,
-  mostrarError: (mensaje) => { mensajeError.value = mensaje; },
-  mostrarExito: (mensaje) => { mensajeExito.value = mensaje; }
+  limpiarFormulario
 });
 </script>
 
