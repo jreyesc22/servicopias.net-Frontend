@@ -123,7 +123,7 @@ class ApiService {
       fechaFin
     }
     
-    return this.get('/ordenes/dashboard/resumen', params)
+    return this.get('/ordenes/resumen-date-range', params)
   }
 
   // Obtener órdenes del mes actual
