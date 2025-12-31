@@ -20,7 +20,8 @@ const routes = [
       { path: 'categorias/nueva', name: 'NuevaCategoria', component: () => import('@/views/CategoriaForm.vue') },
       { path: 'Taller', name: 'OrdeneTaller', component: () => import('@/views/Taller.vue') },
       { path: 'caja', name: 'Caja', component: () => import('@/views/Caja.vue') },
-      { path: 'ordenes', name: 'Ordenes', component: () => import('@/views/Ordenes.vue') }
+      { path: 'ordenes', name: 'Ordenes', component: () => import('@/views/Ordenes.vue') },
+      { path: 'pos', name: 'POS', component: () => import('@/views/POS.vue') }
     ]
   },
   {

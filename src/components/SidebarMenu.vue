@@ -253,6 +253,13 @@ export default {
           color: 'primary'
         },
         { 
+          id: 'pos', 
+          title: 'Punto de Venta', 
+          icon: 'mdi-point-of-sale', 
+          route: '/pos',
+          color: 'indigo'
+        },
+        { 
           id: 'ordenes', 
           title: 'Órdenes', 
           icon: 'mdi-format-list-bulleted', 

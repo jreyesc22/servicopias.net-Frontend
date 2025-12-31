@@ -105,29 +105,35 @@
 
         <!-- BOTONES DEL PASO REGISTRO ORDEN CON EXITO -->
         <div class="d-flex gap-3 justify-center mt-6">
-          <v-btn 
-            color="grey" 
-            variant="outlined" 
-            size="large"
-            class="px-8 py-4 text-body-1 font-weight-bold"
-            style="min-width: 200px;"
-            @click="iniciarNuevaOrden"
-          >
-            <v-icon start size="large">mdi-plus</v-icon>
-            NUEVA ORDEN
-          </v-btn>
+          <v-tooltip text="Nueva Orden" location="top">
+            <template #activator="{ props }">
+              <v-btn 
+                v-bind="props"
+                color="grey" 
+                variant="outlined" 
+                size="x-large"
+                icon
+                @click="iniciarNuevaOrden"
+              >
+                <v-icon size="40">mdi-plus</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
 
-          <v-btn 
-            color="primary" 
-            variant="flat"
-            size="large"
-            class="px-8 py-4 text-body-1 font-weight-bold"
-            style="min-width: 200px;"
-            @click="pasoActual = 5"
-          >
-            <v-icon start size="large">mdi-cash-register</v-icon>
-            PROCESAR PAGO
-          </v-btn>
+          <v-tooltip text="Procesar Pago" location="top">
+            <template #activator="{ props }">
+              <v-btn 
+                v-bind="props"
+                color="primary" 
+                variant="flat"
+                size="x-large"
+                icon
+                @click="pasoActual = 5"
+              >
+                <v-icon size="40">mdi-cash-register</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
         </div>
       </div>
 

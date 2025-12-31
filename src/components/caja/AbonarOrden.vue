@@ -162,6 +162,22 @@
             <!-- Botones compactos con iconos -->
             <v-row dense>
               <v-col cols="12" sm="6">
+                <v-tooltip text="Cancelar" location="top">
+                  <template #activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      variant="outlined"
+                      block
+                      @click="cancelar"
+                      :disabled="cargando"
+                      size="large"
+                    >
+                      <v-icon size="28">mdi-close-circle</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+              </v-col>
+              <v-col cols="12" sm="6">
                 <v-tooltip text="Registrar abono" location="top">
                   <template #activator="{ props }">
                     <v-btn
@@ -174,22 +190,6 @@
                       size="large"
                     >
                       <v-icon size="28">mdi-check-circle</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-tooltip text="Cancelar" location="top">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
-                      variant="outlined"
-                      block
-                      @click="cancelar"
-                      :disabled="cargando"
-                      size="large"
-                    >
-                      <v-icon size="28">mdi-close-circle</v-icon>
                     </v-btn>
                   </template>
                 </v-tooltip>
@@ -222,382 +222,345 @@
   </v-container>
 </template>
 
-<script>
-import abonosService from '@/services/abonos.service'
-import ordenesService from '@/services/ordenes.service'
-import { printerService } from '@/services/printer.service'
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue';
+import abonosService from '@/services/abonos.service';
+import ordenesService from '@/services/ordenes.service';
+import { printerService } from '@/services/printer.service';
 
-export default {
-  name: 'ComponenteAbono',
-  props: {
-    orden: {
-      type: Object,
-      required: true,
-      validator(value) {
-        return value && 
-               typeof value.id !== 'undefined' && 
-               typeof value.total === 'number' &&
-               typeof value.saldo_pendiente === 'number'
-      }
-    },
-    empleadoId: {
-      type: Number,
-      required: true
-    },
-    tiposDePago: {
-      type: Array,
-      required: true,
-      default: () => []
-    },
-    efectivoId: {
-      type: Number,
-      default: 1
+const props = defineProps({
+  orden: {
+    type: Object,
+    required: true,
+    validator(value) {
+      return value && 
+             typeof value.id !== 'undefined' && 
+             typeof value.total === 'number' &&
+             typeof value.saldo_pendiente === 'number';
     }
   },
-  emits: [
-    'abono-registrado',
-    'terminar',
-    'cancelar',
-    'snackbar'
-  ],
-  data() {
-    return {
-      monto: null,
-      tipoPago: 1,
-      numeroRecibo: '',
-      observacion: '',
-      formValido: false,
-      cargando: false,
-      
-      // Control de tipo de pago
-      tipoPagoChip: 'completo',
-      efectivoRecibido: null,
-      
-      // Notificaciones internas
-      mostrarNotificacion: false,
-      notificacion: {
-        color: 'success',
-        texto: ''
-      }
-    };
+  empleadoId: {
+    type: Number,
+    required: true
   },
-
-  computed: {
-    // Saldo pendiente actual
-    saldoPendiente() {
-      return parseFloat(this.orden.saldo_pendiente) || 0;
-    },
-
-    // Obtener el tipo de pago seleccionado
-    tipoPagoSeleccionado() {
-      if (this.tipoPagoChip === 'completo') {
-        return 'completo';
-      }
-      return 'parcial';
-    },
-    
-    // Nombre del tipo de pago seleccionado
-    tipoPagoNombre() {
-      const tipo = this.tiposDePago.find(t => t.id === this.tipoPago);
-      return tipo?.nombre?.toLowerCase() || '';
-    },
-    
-    // Cambio en efectivo
-    cambio() {
-      if (this.tipoPago !== this.efectivoId || !this.efectivoRecibido) {
-        return 0;
-      }
-      const recibido = parseFloat(this.efectivoRecibido) || 0;
-      const monto = parseFloat(this.monto) || 0;
-      return Math.max(0, recibido - monto);
-    },
-
-    // Etiqueta del documento según tipo de pago
-    etiquetaDocumento() {
-      const tipoPago = this.tipoPagoNombre;
-      if (tipoPago.includes('transferencia')) return 'Número de transferencia';
-      if (tipoPago.includes('tc') || tipoPago.includes('tarjeta')) return 'Número de autorización';
-      if (tipoPago.includes('cheque')) return 'Número de cheque';
-      if (tipoPago.includes('móvil')) return 'Número de referencia';
-      return 'Número de comprobante';
-    },
-
-    // Texto del botón según tipo de pago
-    textoBoton() {
-      return this.tipoPagoSeleccionado === 'completo' ? 'Pagar Total' : 'Registrar Abono';
-    },
-
-    // Regla de validación requerido
-    reglasRequerido() {
-      return v => !!v || 'Este campo es requerido';
-    },
-    
-    // Verificar si requiere número de recibo
-    requiereNumeroRecibo() {
-      if (this.tipoPago === this.efectivoId) {
-        return false;
-      }
-      
-      const tipoPago = this.tipoPagoNombre;
-      return tipoPago.includes('transferencia') || 
-             tipoPago.includes('tc') || 
-             tipoPago.includes('tarjeta') ||
-             tipoPago.includes('cheque') ||
-             tipoPago.includes('crédito') ||
-             tipoPago.includes('móvil');
-    },
-    
-    // Texto descriptivo del tipo de comprobante
-    tipoComprobanteTexto() {
-      const tipoPago = this.tipoPagoNombre;
-      if (tipoPago.includes('transferencia')) return 'transferencia';
-      if (tipoPago.includes('tc') || tipoPago.includes('tarjeta')) return 'autorización';
-      if (tipoPago.includes('cheque')) return 'cheque';
-      if (tipoPago.includes('móvil')) return 'referencia';
-      return 'comprobante';
-    },
-
-    // Saldo restante después del abono
-    saldoRestante() {
-      const monto = parseFloat(this.monto) || 0;
-      const saldoPendiente = parseFloat(this.orden.saldo_pendiente) || 0;
-      return Math.max(0, saldoPendiente - monto);
-    },
-
-    // Reglas de validación para el monto
-    reglasValidacionMonto() {
-      const saldoPendiente = this.saldoPendiente;
-      return [
-        v => !!v || 'Ingrese el monto del abono',
-        v => v > 0 || 'El monto debe ser mayor a 0',
-        v => v <= saldoPendiente || `No puede superar Q ${this.formatMoney(saldoPendiente)}`
-      ];
-    },
-
-    // Reglas de validación para efectivo recibido
-    reglasValidacionEfectivo() {
-      const monto = parseFloat(this.monto) || 0;
-      return [
-        v => !!v || 'Ingrese el efectivo recibido',
-        v => v >= monto || 'El efectivo debe ser mayor o igual al monto'
-      ];
-    },
-
-    // Reglas para número de recibo
-    reglasNumeroRecibo() {
-      return [
-        v => !!v || `Número de ${this.tipoComprobanteTexto} es requerido`
-      ];
-    },
-
-    // Validación completa del formulario
-    formularioCompleto() {
-      if (this.tipoPagoSeleccionado === 'completo') {
-        const montoValido = this.monto > 0;
-        const efectivoValido = this.tipoPago !== this.efectivoId || (this.efectivoRecibido >= this.monto);
-        const reciboValido = !this.requiereNumeroRecibo || !!this.numeroRecibo?.trim();
-        return this.formValido && montoValido && efectivoValido && reciboValido;
-      } else {
-        const montoValido = this.monto > 0 && this.monto <= this.saldoPendiente;
-        const reciboValido = !this.requiereNumeroRecibo || !!this.numeroRecibo?.trim();
-        return this.formValido && montoValido && reciboValido;
-      }
-    }
+  tiposDePago: {
+    type: Array,
+    required: true,
+    default: () => []
   },
+  efectivoId: {
+    type: Number,
+    default: 1
+  }
+});
 
-  watch: {
-    // Limpiar número de recibo cuando cambie el tipo de pago
-    tipoPago() {
-      if (!this.requiereNumeroRecibo) {
-        this.numeroRecibo = '';
-      }
-    },
+const emit = defineEmits([
+  'abono-registrado',
+  'terminar',
+  'cancelar',
+  'snackbar'
+]);
 
-    // Inicializar tipo de pago cuando lleguen los datos
-    tiposDePago: {
-      handler(nuevosTipos) {
-        if (nuevosTipos?.length > 0 && !this.tipoPago) {
-          this.tipoPago = this.efectivoId;
-        }
-      },
-      immediate: true
-    },
+// Referencias reactivas
+const form = ref(null);
+const monto = ref(null);
+const tipoPago = ref(1);
+const numeroRecibo = ref('');
+const observacion = ref('');
+const formValido = ref(false);
+const cargando = ref(false);
 
-    // Inicializar monto cuando cambie la orden o su saldo pendiente
-    'orden.saldo_pendiente': {
-      handler(nuevoSaldo) {
-        // Solo inicializar si no hay monto establecido aún
-        if (nuevoSaldo > 0 && (this.monto === null || this.monto === 0)) {
-          this.actualizarTipoPago();
-        }
-      },
-      immediate: true
-    }
-  },
+// Control de tipo de pago
+const tipoPagoChip = ref('completo');
+const efectivoRecibido = ref(null);
 
-  methods: {
-    // Actualizar tipo de pago (completo/parcial)
-    actualizarTipoPago() {
-      if (this.tipoPagoSeleccionado === 'completo') {
-        // Completo: 100% del saldo pendiente
-        this.monto = this.saldoPendiente;
-      } else {
-        // Parcial: 50% del saldo pendiente
-        this.monto = Math.round(this.saldoPendiente * 0.5 * 100) / 100;
-      }
-      this.efectivoRecibido = null;
-    },
+// Notificaciones internas
+const mostrarNotificacion = ref(false);
+const notificacion = ref({
+  color: 'success',
+  texto: ''
+});
 
-    formatMoney(valor) {
-      const numero = parseFloat(valor);
-      return isNaN(numero) ? '0.00' : numero.toFixed(2);
-    },
+// Computed properties
+const saldoPendiente = computed(() => {
+  return parseFloat(props.orden.saldo_pendiente) || 0;
+});
 
-    validarMonto() {
-      // Validación en tiempo real del monto
-      const monto = parseFloat(this.monto);
-      const saldoPendiente = parseFloat(this.orden.saldo_pendiente);
-      
-      if (monto > saldoPendiente) {
-        this.mostrarMensaje('warning', 'El monto no puede superar el saldo pendiente');
-      }
-    },
+const tipoPagoSeleccionado = computed(() => {
+  if (tipoPagoChip.value === 'completo') {
+    return 'completo';
+  }
+  return 'parcial';
+});
 
-    mostrarMensaje(tipo, texto) {
-      this.notificacion = { color: tipo, texto };
-      this.mostrarNotificacion = true;
-    },
+const tipoPagoNombre = computed(() => {
+  const tipo = props.tiposDePago.find(t => t.id === tipoPago.value);
+  return tipo?.nombre?.toLowerCase() || '';
+});
 
-    async registrarAbono() {
-      if (!this.formularioCompleto) {
-        this.mostrarMensaje('warning', 'Complete todos los campos requeridos');
-        return;
-      }
-      
-      // Validación adicional para número de recibo
-      if (this.requiereNumeroRecibo && !this.numeroRecibo?.trim()) {
-        this.mostrarMensaje('warning', `Número de ${this.tipoComprobanteTexto} es requerido`);
-        return;
-      }
+const cambio = computed(() => {
+  if (tipoPago.value !== props.efectivoId || !efectivoRecibido.value) {
+    return 0;
+  }
+  const recibido = parseFloat(efectivoRecibido.value) || 0;
+  const montoVal = parseFloat(monto.value) || 0;
+  return Math.max(0, recibido - montoVal);
+});
 
-      this.cargando = true;
+const etiquetaDocumento = computed(() => {
+  const tipoPagoName = tipoPagoNombre.value;
+  if (tipoPagoName.includes('transferencia')) return 'Número de transferencia';
+  if (tipoPagoName.includes('tc') || tipoPagoName.includes('tarjeta')) return 'Número de autorización';
+  if (tipoPagoName.includes('cheque')) return 'Número de cheque';
+  if (tipoPagoName.includes('móvil')) return 'Número de referencia';
+  return 'Número de comprobante';
+});
 
-      try {
-        const payload = {
-          ordenId: this.orden.id,
-          tipoPagoId: this.tipoPago,
-          monto: parseFloat(this.monto),
-          numero_recibo: this.requiereNumeroRecibo ? this.numeroRecibo.trim() : null,
-          empleadoId: this.empleadoId,
-          observacion: this.observacion?.trim() || null
-        };
+const textoBoton = computed(() => {
+  return tipoPagoSeleccionado.value === 'completo' ? 'Pagar Total' : 'Registrar Abono';
+});
 
-        console.log('Payload a enviar:', payload);
-        
-        // Registrar abono usando el servicio
-        const data = await abonosService.registrarAbono(payload);
-        
-        // Obtener orden actualizada desde el servidor
-        const ordenActualizada = await ordenesService.getById(this.orden.id);
+const reglasRequerido = computed(() => {
+  return v => !!v || 'Este campo es requerido';
+});
 
-        this.mostrarMensaje('success', 'Abono registrado exitosamente');
-        
-        // Abrir cajón de dinero si el método de pago es efectivo
-        if (this.tipoPago === this.efectivoId) {
-          try {
-            console.log('Abriendo cajón de dinero...');
-            await printerService.abrirCajon();
-            console.log('Cajón abierto exitosamente');
-          } catch (errorCajon) {
-            console.warn('No se pudo abrir el cajón:', errorCajon.message);
-            // No detenemos el flujo si falla el cajón
-          }
-        }
-        
-        // Calcular cambio si es efectivo
-        const cambio = this.tipoPago === this.efectivoId && this.efectivoRecibido > this.monto
-          ? this.efectivoRecibido - this.monto
-          : 0;
-        
-        // Emitir evento con información completa incluyendo orden actualizada
-        this.$emit('abono-registrado', {
-          abono: data.data,
-          ordenActualizada: ordenActualizada,
-          monto: parseFloat(this.monto),
-          cambio: cambio,
-          efectivoRecibido: this.efectivoRecibido || null,
-          tipoPago: this.tiposDePago.find(t => t.id === this.tipoPago)?.nombre || 'Desconocido',
-          tipoPagoId: this.tipoPago,
-          estadoPago: data.estado_pago,
-          abonado: data.abonado,
-          saldoPendiente: data.saldo_pendiente,
-          ordenCompletada: data.estado_pago === 'pagado',
-          numeroRecibo: this.numeroRecibo || null
-        });
+const requiereNumeroRecibo = computed(() => {
+  if (tipoPago.value === props.efectivoId) {
+    return false;
+  }
+  
+  const tipoPagoName = tipoPagoNombre.value;
+  return tipoPagoName.includes('transferencia') || 
+         tipoPagoName.includes('tc') || 
+         tipoPagoName.includes('tarjeta') ||
+         tipoPagoName.includes('cheque') ||
+         tipoPagoName.includes('crédito') ||
+         tipoPagoName.includes('móvil');
+});
 
-        // Emitir para compatibilidad con el sistema existente
-        const mensajeEstado = data.estado_pago === 'pagado' 
-          ? 'Pago completado exitosamente' 
-          : data.estado_pago === 'parcial'
-            ? 'Abono parcial registrado exitosamente'
-            : 'Abono registrado exitosamente';
-        
-        this.$emit('snackbar', {
-          text: mensajeEstado,
-          color: 'success'
-        });
-        
-        // Limpiar formulario
-        this.resetForm();
-        
-        // Finalizar siempre (tanto en completo como en parcial)
-        setTimeout(() => {
-          this.$emit('terminar');
-        }, 1500);
+const tipoComprobanteTexto = computed(() => {
+  const tipoPagoName = tipoPagoNombre.value;
+  if (tipoPagoName.includes('transferencia')) return 'transferencia';
+  if (tipoPagoName.includes('tc') || tipoPagoName.includes('tarjeta')) return 'autorización';
+  if (tipoPagoName.includes('cheque')) return 'cheque';
+  if (tipoPagoName.includes('móvil')) return 'referencia';
+  return 'comprobante';
+});
 
-      } catch (error) {
-        console.error('Error al registrar abono:', error);
-        this.mostrarMensaje('error', error.message || 'Error al registrar abono');
-        
-        this.$emit('snackbar', {
-          text: error.message || 'Error al registrar abono',
-          color: 'error'
-        });
-      } finally {
-        this.cargando = false;
-      }
-    },
+const saldoRestante = computed(() => {
+  const montoVal = parseFloat(monto.value) || 0;
+  const saldoPend = parseFloat(props.orden.saldo_pendiente) || 0;
+  return Math.max(0, saldoPend - montoVal);
+});
 
-    cancelar() {
-      this.resetForm();
-      this.$emit('cancelar');
-    },
+const reglasValidacionMonto = computed(() => {
+  const saldoPend = saldoPendiente.value;
+  return [
+    v => !!v || 'Ingrese el monto del abono',
+    v => v > 0 || 'El monto debe ser mayor a 0',
+    v => v <= saldoPend || `No puede superar Q ${formatMoney(saldoPend)}`
+  ];
+});
 
-    resetForm() {
-      this.monto = null;
-      this.tipoPago = this.efectivoId;
-      this.numeroRecibo = '';
-      this.observacion = '';
-      this.formValido = false;
-      
-      // Reset validación del formulario
-      if (this.$refs.form?.resetValidation) {
-        this.$refs.form.resetValidation();
-      }
-    }
-  },
+const reglasValidacionEfectivo = computed(() => {
+  const montoVal = parseFloat(monto.value) || 0;
+  return [
+    v => !!v || 'Ingrese el efectivo recibido',
+    v => v >= montoVal || 'El efectivo debe ser mayor o igual al monto'
+  ];
+});
 
-  mounted() {
-    // Inicializar tipo de pago por defecto
-    if (this.tiposDePago?.length > 0) {
-      this.tipoPago = this.efectivoId;
-    }
+const reglasNumeroRecibo = computed(() => {
+  return [
+    v => !!v || `Número de ${tipoComprobanteTexto.value} es requerido`
+  ];
+});
 
-    // Si es pago completo, inicializar con saldo pendiente
-    if (this.tipoPagoChip === 'completo') {
-      this.monto = this.saldoPendiente;
-    }
+const formularioCompleto = computed(() => {
+  if (tipoPagoSeleccionado.value === 'completo') {
+    const montoValido = monto.value > 0;
+    const efectivoValido = tipoPago.value !== props.efectivoId || (efectivoRecibido.value >= monto.value);
+    const reciboValido = !requiereNumeroRecibo.value || !!numeroRecibo.value?.trim();
+    return formValido.value && montoValido && efectivoValido && reciboValido;
+  } else {
+    const montoValido = monto.value > 0 && monto.value <= saldoPendiente.value;
+    const reciboValido = !requiereNumeroRecibo.value || !!numeroRecibo.value?.trim();
+    return formValido.value && montoValido && reciboValido;
+  }
+});
+
+// Métodos
+const actualizarTipoPago = () => {
+  if (tipoPagoSeleccionado.value === 'completo') {
+    // Completo: 100% del saldo pendiente
+    monto.value = saldoPendiente.value;
+  } else {
+    // Parcial: 50% del saldo pendiente
+    monto.value = Math.round(saldoPendiente.value * 0.5 * 100) / 100;
+  }
+  efectivoRecibido.value = null;
+};
+
+const formatMoney = (valor) => {
+  const numero = parseFloat(valor);
+  return isNaN(numero) ? '0.00' : numero.toFixed(2);
+};
+
+const validarMonto = () => {
+  // Validación en tiempo real del monto
+  const montoVal = parseFloat(monto.value);
+  const saldoPend = parseFloat(props.orden.saldo_pendiente);
+  
+  if (montoVal > saldoPend) {
+    mostrarMensaje('warning', 'El monto no puede superar el saldo pendiente');
   }
 };
+
+const mostrarMensaje = (tipo, texto) => {
+  notificacion.value = { color: tipo, texto };
+  mostrarNotificacion.value = true;
+};
+
+const registrarAbono = async () => {
+  if (!formularioCompleto.value) {
+    mostrarMensaje('warning', 'Complete todos los campos requeridos');
+    return;
+  }
+  
+  // Validación adicional para número de recibo
+  if (requiereNumeroRecibo.value && !numeroRecibo.value?.trim()) {
+    mostrarMensaje('warning', `Número de ${tipoComprobanteTexto.value} es requerido`);
+    return;
+  }
+
+  cargando.value = true;
+
+  try {
+    const payload = {
+      ordenId: props.orden.id,
+      tipoPagoId: tipoPago.value,
+      monto: parseFloat(monto.value),
+      numero_recibo: requiereNumeroRecibo.value ? numeroRecibo.value.trim() : null,
+      empleadoId: props.empleadoId,
+      observacion: observacion.value?.trim() || null
+    };
+
+    console.log('Payload a enviar:', payload);
+    
+    // Registrar abono usando el servicio
+    const data = await abonosService.registrarAbono(payload);
+    
+    // Obtener orden actualizada desde el servidor
+    const ordenActualizada = await ordenesService.getById(props.orden.id);
+
+    mostrarMensaje('success', 'Abono registrado exitosamente');
+    
+    // Abrir cajón de dinero si el método de pago es efectivo
+    if (tipoPago.value === props.efectivoId) {
+      try {
+        console.log('Abriendo cajón de dinero...');
+        await printerService.abrirCajon();
+        console.log('Cajón abierto exitosamente');
+      } catch (errorCajon) {
+        console.warn('No se pudo abrir el cajón:', errorCajon.message);
+        // No detenemos el flujo si falla el cajón
+      }
+    }
+    
+    // Calcular cambio si es efectivo
+    const cambioCalculado = tipoPago.value === props.efectivoId && efectivoRecibido.value > monto.value
+      ? efectivoRecibido.value - monto.value
+      : 0;
+    
+    // Emitir evento con información completa incluyendo orden actualizada
+    emit('abono-registrado', {
+      abono: data.data,
+      ordenActualizada: ordenActualizada,
+      monto: parseFloat(monto.value),
+      cambio: cambioCalculado,
+      efectivoRecibido: efectivoRecibido.value || null,
+      tipoPago: props.tiposDePago.find(t => t.id === tipoPago.value)?.nombre || 'Desconocido',
+      tipoPagoId: tipoPago.value,
+      estadoPago: data.estado_pago,
+      abonado: data.abonado,
+      saldoPendiente: data.saldo_pendiente,
+      ordenCompletada: data.estado_pago === 'pagado',
+      numeroRecibo: numeroRecibo.value || null
+    });
+
+    // Emitir para compatibilidad con el sistema existente
+    const mensajeEstado = data.estado_pago === 'pagado' 
+      ? 'Pago completado exitosamente' 
+      : data.estado_pago === 'parcial'
+        ? 'Abono parcial registrado exitosamente'
+        : 'Abono registrado exitosamente';
+    
+    emit('snackbar', {
+      text: mensajeEstado,
+      color: 'success'
+    });
+    
+    // Limpiar formulario
+    resetForm();
+    
+    // Finalizar inmediatamente (tanto en completo como en parcial)
+    emit('terminar');
+
+  } catch (error) {
+    console.error('Error al registrar abono:', error);
+    mostrarMensaje('error', error.message || 'Error al registrar abono');
+    
+    emit('snackbar', {
+      text: error.message || 'Error al registrar abono',
+      color: 'error'
+    });
+  } finally {
+    cargando.value = false;
+  }
+};
+
+const cancelar = () => {
+  resetForm();
+  emit('cancelar');
+};
+
+const resetForm = () => {
+  monto.value = null;
+  tipoPago.value = props.efectivoId;
+  numeroRecibo.value = '';
+  observacion.value = '';
+  formValido.value = false;
+  
+  // Reset validación del formulario
+  if (form.value?.resetValidation) {
+    form.value.resetValidation();
+  }
+};
+
+// Watchers
+watch(tipoPago, () => {
+  if (!requiereNumeroRecibo.value) {
+    numeroRecibo.value = '';
+  }
+});
+
+watch(() => props.tiposDePago, (nuevosTipos) => {
+  if (nuevosTipos?.length > 0 && !tipoPago.value) {
+    tipoPago.value = props.efectivoId;
+  }
+}, { immediate: true });
+
+// Lifecycle hooks
+onMounted(() => {
+  // Inicializar tipo de pago por defecto
+  if (props.tiposDePago?.length > 0) {
+    tipoPago.value = props.efectivoId;
+  }
+
+  // Inicializar con saldo pendiente
+  if (tipoPagoChip.value === 'completo' && saldoPendiente.value > 0) {
+    monto.value = saldoPendiente.value;
+  }
+});
 </script>
 
