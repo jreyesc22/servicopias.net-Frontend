@@ -217,8 +217,11 @@ const eliminarCategoria = async () => {
 </script>
 
 <style scoped>
+/* Integración con design-system global */
 .lista-categorias-card {
-  margin-top: 16px;
+  margin-top: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-medium);
 }
 
 .categoria-list {
@@ -226,12 +229,14 @@ const eliminarCategoria = async () => {
 }
 
 .categoria-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--border-color-light);
+  transition: background-color var(--transition-fast);
+  border-radius: var(--border-radius-sm);
 }
 
 .categoria-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--hover-background);
+  box-shadow: var(--shadow-small);
 }
 
 .categoria-item:last-child {
@@ -239,6 +244,15 @@ const eliminarCategoria = async () => {
 }
 
 .gap-1 {
-  gap: 4px;
+  gap: var(--spacing-xs);
+}
+
+/* Animaciones mejoradas */
+.categoria-item :deep(.v-btn) {
+  transition: all var(--transition-base);
+}
+
+.categoria-item :deep(.v-btn:hover) {
+  transform: scale(1.1);
 }
 </style>

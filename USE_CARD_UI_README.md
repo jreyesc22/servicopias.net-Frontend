@@ -1,8 +1,58 @@
 # Composable de UI - useCardUI
 
+> **⚠️ ACTUALIZACIÓN IMPORTANTE (1 de enero de 2026):**  
+> Este composable ha sido integrado con el nuevo [Sistema de Diseño Global](./DESIGN_SYSTEM_README.md).  
+> Consulta la [Guía de Migración](./USE_CARD_UI_MIGRATION.md) para actualizar tus componentes.
+
 **Fecha de creación:** 30 de diciembre de 2025  
+**Última actualización:** 1 de enero de 2026 (Integración con design-system.css)  
 **Sistema:** ServiCopias - Composable de Diseño UI  
 **Framework:** Vue 3 Composition API
+
+---
+
+## ⚡ Inicio Rápido (Uso Actual)
+
+### ✅ Forma recomendada (Después de migración)
+
+```javascript
+import { useCardUI } from '@/components/composables/useCardUI'
+
+// Solo importar helpers de JavaScript
+const { 
+  getHeaderConfig,      // Configuración de headers
+  getChipColor,         // Colores de chips
+  formatearMoneda,      // Formateo de moneda
+  getIcono,             // Iconos por tipo
+  crearChipEstado       // Crear chips de estado
+} = useCardUI()
+```
+
+```vue
+<template>
+  <!-- Usar clases CSS globales -->
+  <v-card-title class="bg-gradient-primary text-white">
+    {{ getHeaderConfig({ tipo: 'primary', titulo: 'Mi Título' }).titulo }}
+  </v-card-title>
+  
+  <v-card-text>
+    <div class="totales-container">
+      <p class="text-primary">{{ formatearMoneda(1234.56) }}</p>
+    </div>
+  </v-card-text>
+</template>
+
+<style scoped>
+/* Solo estilos específicos del componente */
+/* Las clases globales ya están disponibles */
+</style>
+```
+
+### 📚 Documentación Relacionada
+
+- **[Guía de Migración](./USE_CARD_UI_MIGRATION.md)** - Cómo actualizar componentes
+- **[Sistema de Diseño](./DESIGN_SYSTEM_README.md)** - Variables y clases disponibles
+- **[design-system.css](./src/styles/design-system.css)** - Estilos globales
 
 ---
 

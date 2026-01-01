@@ -168,11 +168,24 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Integración con design-system global */
 .crear-categoria-card {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-medium);
 }
 
 .gap-2 {
-  gap: 8px;
+  gap: var(--spacing-sm);
+}
+
+/* Estilos mejorados con transiciones */
+.crear-categoria-card :deep(.v-btn) {
+  transition: all var(--transition-base);
+}
+
+.crear-categoria-card :deep(.v-btn:hover) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 </style>

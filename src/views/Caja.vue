@@ -27,134 +27,25 @@
       </v-col>
     </v-row>
 
-    <!-- Tarjetas resumen elegantes -->
+    <!-- Tarjetas resumen con DashboardKPICard -->
     <v-row v-if="resumenDia" class="my-6" dense>
-      <v-col cols="12" sm="6" lg="3">
-        <v-card 
-          class="summary-card income-card hover-card" 
-          elevation="0"
-        >
-          <v-card-text class="pa-6">
-            <div class="d-flex align-center justify-space-between mb-4">
-              <div class="flex-grow-1">
-                <div class="text-overline text-slate-600 mb-2">INGRESOS DEL DÍA</div>
-                <div class="text-h4 font-weight-bold text-success-dark">
-                  {{ formatearMoneda(resumenDia.total_ingresos) }}
-                </div>
-              </div>
-              <div class="icon-wrapper success-bg">
-                <v-icon color="white" size="32">mdi-trending-up</v-icon>
-              </div>
-            </div>
-            <div class="progress-section">
-              <v-progress-linear
-                color="success"
-                height="6"
-                :model-value="calcularProgreso(resumenDia.total_ingresos, 'ingreso')"
-                rounded
-                class="mb-2"
-              />
-              <div class="text-caption text-slate-500">+12% vs ayer</div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" sm="6" lg="3">
-        <v-card 
-          class="summary-card expense-card hover-card" 
-          elevation="0"
-        >
-          <v-card-text class="pa-6">
-            <div class="d-flex align-center justify-space-between mb-4">
-              <div class="flex-grow-1">
-                <div class="text-overline text-slate-600 mb-2">EGRESOS DEL DÍA</div>
-                <div class="text-h4 font-weight-bold text-error-dark">
-                  {{ formatearMoneda(resumenDia.total_egresos) }}
-                </div>
-              </div>
-              <div class="icon-wrapper error-bg">
-                <v-icon color="white" size="32">mdi-trending-down</v-icon>
-              </div>
-            </div>
-            <div class="progress-section">
-              <v-progress-linear
-                color="error"
-                height="6"
-                :model-value="calcularProgreso(resumenDia.total_egresos, 'egreso')"
-                rounded
-                class="mb-2"
-              />
-              <div class="text-caption text-slate-500">-8% vs ayer</div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" sm="6" lg="3">
-        <v-card 
-          class="summary-card balance-card hover-card" 
-          elevation="0"
-        >
-          <v-card-text class="pa-6">
-            <div class="d-flex align-center justify-space-between mb-4">
-              <div class="flex-grow-1">
-                <div class="text-overline text-slate-600 mb-2">BALANCE NETO</div>
-                <div class="text-h4 font-weight-bold" :class="resumenDia.balance_del_dia >= 0 ? 'text-primary-dark' : 'text-warning-dark'">
-                  {{ formatearMoneda(resumenDia.balance_del_dia) }}
-                </div>
-              </div>
-              <div class="icon-wrapper" :class="resumenDia.balance_del_dia >= 0 ? 'primary-bg' : 'warning-bg'">
-                <v-icon color="white" size="32">
-                  {{ resumenDia.balance_del_dia >= 0 ? 'mdi-wallet' : 'mdi-wallet-outline' }}
-                </v-icon>
-              </div>
-            </div>
-            <div class="progress-section">
-              <v-progress-linear
-                :color="resumenDia.balance_del_dia >= 0 ? 'primary' : 'warning'"
-                height="6"
-                :model-value="Math.min(Math.abs(resumenDia.balance_del_dia) / 10000 * 100, 100)"
-                rounded
-                class="mb-2"
-              />
-              <div class="text-caption text-slate-500">
-                {{ resumenDia.balance_del_dia >= 0 ? 'Superávit' : 'Déficit' }}
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" sm="6" lg="3">
-        <v-card 
-          class="summary-card movements-card hover-card"
-          elevation="0"
-        >
-          <v-card-text class="pa-6">
-            <div class="d-flex align-center justify-space-between mb-4">
-              <div class="flex-grow-1">
-                <div class="text-overline text-slate-600 mb-2">TOTAL MOVIMIENTOS</div>
-                <div class="text-h4 font-weight-bold text-info-dark">
-                  {{ resumenDia.total_movimientos || 0 }}
-                </div>
-              </div>
-              <div class="icon-wrapper info-bg">
-                <v-icon color="white" size="32">mdi-swap-vertical</v-icon>
-              </div>
-            </div>
-            <div class="progress-section">
-              <v-progress-linear
-                color="info"
-                height="6"
-                :model-value="Math.min((resumenDia.total_movimientos || 0) * 5, 100)"
-                rounded
-                class="mb-2"
-              />
-              <div class="text-caption text-slate-500">{{ (resumenDia.total_movimientos || 0) }} transacciones</div>
-            </div>
-          </v-card-text>
-        </v-card>
+      <v-col 
+        v-for="(kpi, index) in kpiCards" 
+        :key="index"
+        cols="12" 
+        sm="6" 
+        lg="3"
+      >
+        <DashboardKPICard
+          :variant="kpi.variant"
+          :icon="kpi.icon"
+          :title="kpi.title"
+          :value="kpi.value"
+          :subtitle="kpi.subtitle"
+          :showProgress="kpi.showProgress"
+          :progressValue="kpi.progressValue"
+          hoverable
+        />
       </v-col>
     </v-row>
 
@@ -293,6 +184,7 @@ import RegistrarEgreso from '../components/caja/RegistrarEgreso.vue'
 import MovimientoModal from '../components/caja/RegistrarIngresoE.vue'
 import { useTiposPago } from '../components/composables/useTiposPago'
 import { useEmpleados } from '../components/composables/useEmpleados'
+import DashboardKPICard from '../components/Dashboard/DashboardKPICard.vue'
 
 const movimientos = ref([])
 const resumenDia = ref(null)
@@ -338,6 +230,50 @@ const calcularProgreso = (valor, tipo) => {
   const maximo = tipo === 'ingreso' ? 50000 : 30000
   return Math.min((valor / maximo) * 100, 100)
 }
+
+// Configuración de KPIs para las summary cards
+const kpiCards = computed(() => {
+  if (!resumenDia.value) return []
+  
+  return [
+    {
+      variant: 'success',
+      icon: 'mdi-trending-up',
+      title: 'INGRESOS DEL DÍA',
+      value: formatearMoneda(resumenDia.value.total_ingresos),
+      subtitle: '+12% vs ayer',
+      showProgress: true,
+      progressValue: calcularProgreso(resumenDia.value.total_ingresos, 'ingreso')
+    },
+    {
+      variant: 'error',
+      icon: 'mdi-trending-down',
+      title: 'EGRESOS DEL DÍA',
+      value: formatearMoneda(resumenDia.value.total_egresos),
+      subtitle: '-8% vs ayer',
+      showProgress: true,
+      progressValue: calcularProgreso(resumenDia.value.total_egresos, 'egreso')
+    },
+    {
+      variant: resumenDia.value.balance_del_dia >= 0 ? 'primary' : 'warning',
+      icon: resumenDia.value.balance_del_dia >= 0 ? 'mdi-wallet' : 'mdi-wallet-outline',
+      title: 'BALANCE NETO',
+      value: formatearMoneda(resumenDia.value.balance_del_dia),
+      subtitle: resumenDia.value.balance_del_dia >= 0 ? 'Superávit' : 'Déficit',
+      showProgress: true,
+      progressValue: Math.min(Math.abs(resumenDia.value.balance_del_dia) / 10000 * 100, 100)
+    },
+    {
+      variant: 'info',
+      icon: 'mdi-swap-vertical',
+      title: 'TOTAL MOVIMIENTOS',
+      value: resumenDia.value.total_movimientos || 0,
+      subtitle: `${resumenDia.value.total_movimientos || 0} transacciones`,
+      showProgress: true,
+      progressValue: Math.min((resumenDia.value.total_movimientos || 0) * 5, 100)
+    }
+  ]
+})
 
 // Función para obtener icono de notificación
 const getNotificationIcon = (tipo) => {
@@ -663,15 +599,6 @@ onMounted(() => {
   }
 }
 
-.summary-card {
-  animation: slideInUp 0.6s ease-out;
-}
-
-.summary-card:nth-child(1) { animation-delay: 0.1s; }
-.summary-card:nth-child(2) { animation-delay: 0.2s; }
-.summary-card:nth-child(3) { animation-delay: 0.3s; }
-.summary-card:nth-child(4) { animation-delay: 0.4s; }
-
 .control-panel {
   animation: slideInUp 0.8s ease-out 0.2s both;
 }
@@ -686,19 +613,10 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 800px) {
-  .icon-wrapper {
-    width: 60px;
-    height: 60px;
-  }
-  
   .action-btn-primary,
   .action-btn-secondary {
     width: 100%;
     margin-bottom: 12px;
-  }
-  
-  .summary-card {
-    margin-bottom: 16px;
   }
 }
 

@@ -174,31 +174,36 @@ function confirmarConRetraso() {
 </script>
 
 <style scoped>
-/* Estilos de UI compartidos */
+/* Estilos de UI compartidos con design-system */
 .text-white {
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .text-primary {
-  color: #1976d2 !important;
+  color: var(--color-primary) !important;
 }
 
 .v-table {
-  font-size: 14px;
-  border-radius: 8px;
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius-md);
   overflow: hidden;
+  box-shadow: var(--shadow-small);
 }
 
 .v-table thead tr th {
-  background-color: #f5f5f5;
-  font-weight: 600;
+  background-color: var(--color-grey-50);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.item-row {
+  transition: background-color var(--transition-fast);
 }
 
 .item-row:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-grey-50);
 }
 
 /* Estilos específicos del componente */
@@ -211,16 +216,16 @@ function confirmarConRetraso() {
 }
 
 .ml-4 {
-  margin-left: 16px;
+  margin-left: var(--spacing-md);
 }
 
 .me-1 {
-  margin-right: 4px;
+  margin-right: var(--spacing-xs);
 }
 
 @media (max-width: 767px) {
   .v-table {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 }
 </style>

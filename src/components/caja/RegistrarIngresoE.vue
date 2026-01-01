@@ -1,16 +1,16 @@
 <template>
   <v-dialog v-model="dialog" max-width="600">
-    <v-card>
-      <!-- Header Verde -->
-      <v-sheet color="green-darken-3" class="pa-4">
-        <div class="text-white text-h6">Registrar Nuevo Ingreso</div>
-        <div class="text-white text-body-2">
+    <v-card class="dialog-ingreso">
+      <!-- Header Verde con gradiente -->
+      <div class="dialog-header bg-gradient-success">
+        <div class="dialog-header-title">Registrar Nuevo Ingreso</div>
+        <div class="dialog-header-subtitle">
           Complete la información del movimiento de entrada
         </div>
-      </v-sheet>
+      </div>
 
       <!-- Formulario -->
-      <v-card-text>
+      <v-card-text class="dialog-content">
         <v-form ref="formRef" v-model="isValid" validate-on="blur">
           <v-row dense>
             <v-col cols="6">
@@ -62,26 +62,26 @@
         </v-form>
 
         <!-- Resumen -->
-        <v-sheet class="mt-4 pa-4" border>
-          <div class="text-subtitle-2 mb-2">
+        <div class="info-section">
+          <div class="section-title">
             <v-icon start color="green">mdi-information</v-icon>
             Resumen del Ingreso
           </div>
           <v-row>
             <v-col cols="4">
-              <div class="text-caption">Monto Total</div>
-              <div class="text-green text-h6">Q {{ form.monto || '0.00' }}</div>
+              <div class="text-caption text-grey">Monto Total</div>
+              <div class="text-success text-h6">Q {{ form.monto || '0.00' }}</div>
             </v-col>
             <v-col cols="4">
-              <div class="text-caption">Método de Pago</div>
-              <div>{{ metodoSeleccionado || 'No seleccionado' }}</div>
+              <div class="text-caption text-grey">Método de Pago</div>
+              <div class="text-body-2">{{ metodoSeleccionado || 'No seleccionado' }}</div>
             </v-col>
             <v-col cols="4">
-              <div class="text-caption">Empleado</div>
-              <div>{{ empleadoSeleccionado || 'No seleccionado' }}</div>
+              <div class="text-caption text-grey">Empleado</div>
+              <div class="text-body-2">{{ empleadoSeleccionado || 'No seleccionado' }}</div>
             </v-col>
           </v-row>
-        </v-sheet>
+        </div>
 
         <!-- Mensaje -->
         <v-alert
@@ -95,7 +95,7 @@
       </v-card-text>
 
       <!-- Acciones -->
-      <v-card-actions class="justify-space-between">
+      <v-card-actions class="dialog-actions">
         <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
         <v-btn color="green-darken-3" :loading="loading" @click="guardarIngreso">
           <v-icon start>mdi-content-save</v-icon>
@@ -110,6 +110,8 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import axios from "axios";
 import AuthService from '@/services/auth.service';
+import { useEmpleados } from '../composables/useEmpleados';
+import { useTiposPago } from '../composables/useTiposPago';
 
 const dialog = ref(true);
 const formRef = ref(null);
@@ -127,8 +129,8 @@ const form = reactive({
   tipo_movimiento: "ENTRADA",
 });
 
-const empleados = ref([]);
-const metodosPago = ref([]);
+const { empleados, fetchEmpleados } = useEmpleados();
+const { tiposPago: metodosPago, fetchTiposPago } = useTiposPago();
 
 const metodoSeleccionado = computed(() => {
   const sel = metodosPago.value.find(m => m.id === form.id_tipo_pago);
@@ -146,14 +148,10 @@ onMounted(async () => {
     form.id_empleado = currentUser.id;
   }
 
-  empleados.value = [
-    { id: 1, nombre: "Dev" },
-    { id: 2, nombre: "Admin" },
-  ];
-  metodosPago.value = [
-    { id: 1, nombre: "Efectivo" },
-    { id: 2, nombre: "Tarjeta" },
-  ];
+  await Promise.all([
+    fetchEmpleados(),
+    fetchTiposPago()
+  ]);
 });
 
 const guardarIngreso = async () => {
@@ -183,3 +181,43 @@ const guardarIngreso = async () => {
   }
 };
 </script>
+
+<style scoped>
+.dialog-ingreso {
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: var(--spacing-lg);
+  color: white;
+}
+
+.dialog-header-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.dialog-header-subtitle {
+  font-size: var(--text-sm);
+  opacity: 0.95;
+}
+
+.dialog-content {
+  padding: var(--spacing-lg);
+}
+
+.section-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+}
+
+.dialog-actions {
+  padding: var(--spacing-md) var(--spacing-lg);
+  justify-content: space-between;
+}
+</style>

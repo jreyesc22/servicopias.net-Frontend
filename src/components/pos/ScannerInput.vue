@@ -226,17 +226,32 @@ watch(() => props.deshabilitado, (nuevo) => {
 
 <style scoped>
 .scanner-input-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--pos-gradient-primary);
   color: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-medium);
+  transition: all var(--transition-base);
+}
+
+.scanner-input-card:hover {
+  box-shadow: var(--shadow-hover);
 }
 
 .scanner-input-card :deep(.v-field) {
-  background: white !important;
+  background: var(--surface-color) !important;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-base);
+}
+
+.scanner-input-card :deep(.v-field:focus-within) {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
 }
 
 .scanner-input-card :deep(.v-field__input) {
   color: #000 !important;
-  caret-color: #667eea !important;
+  caret-color: var(--primary-color) !important;
+  font-size: var(--text-lg);
 }
 
 .scanner-input-card :deep(.v-field__input)::placeholder {
@@ -246,9 +261,29 @@ watch(() => props.deshabilitado, (nuevo) => {
 
 .scanner-input-card :deep(.v-label) {
   color: #333 !important;
+  font-weight: 500;
 }
 
 .scanner-input-card :deep(.v-chip) {
   opacity: 0.9;
+  transition: all var(--transition-fast);
+}
+
+.scanner-input-card :deep(.v-chip:hover) {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.scanner-input-card :deep(.v-btn) {
+  transition: all var(--transition-base);
+}
+
+.scanner-input-card :deep(.v-btn:hover) {
+  transform: scale(1.1);
+}
+
+.scanner-input-card :deep(.v-alert) {
+  border-radius: var(--border-radius);
+  animation: slideInRight var(--transition-smooth) ease-out;
 }
 </style>

@@ -275,6 +275,13 @@ const vaciarCarrito = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-medium);
+  transition: all var(--transition-base);
+}
+
+.carrito-pos-card:hover {
+  box-shadow: var(--shadow-hover);
 }
 
 .carrito-table {
@@ -284,11 +291,24 @@ const vaciarCarrito = () => {
 }
 
 .carrito-item {
-  transition: background-color 0.2s;
+  transition: all var(--transition-base);
 }
 
 .carrito-item:hover {
   background-color: rgba(0, 0, 0, 0.02);
+  transform: scale(1.01);
+}
+
+:deep(.v-btn) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.v-btn:hover) {
+  transform: scale(1.05);
+}
+
+:deep(.v-avatar) {
+  box-shadow: var(--shadow-xs);
 }
 
 :deep(.v-text-field input[type="number"]) {

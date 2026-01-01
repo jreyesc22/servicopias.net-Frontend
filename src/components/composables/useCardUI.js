@@ -1,18 +1,61 @@
 import { computed } from 'vue'
 
 /**
- * Composable para estilos y configuración visual de Cards
- * Proporciona diseño consistente sin afectar la lógica de negocio
+ * ============================================================================
+ * useCardUI - Composable de UI para Cards y Componentes
+ * ============================================================================
+ * 
+ * Proporciona helpers de JavaScript para configuración visual de componentes.
+ * 
+ * INTEGRADO CON SISTEMA DE DISEÑO GLOBAL v2.0
+ * 
+ * ⚠️ IMPORTANTE:
+ * - Los estilos CSS están en design-system.css (no copiar aquí)
+ * - Solo usar helpers de JavaScript de este composable
+ * - Las clases CSS están disponibles globalmente
+ * 
+ * ============================================================================
+ * 
+ * ✅ USO CORRECTO:
+ * 
+ * import { useCardUI } from '@/components/composables/useCardUI'
+ * 
+ * const { 
+ *   getHeaderConfig,      // Configuración de headers
+ *   getChipColor,         // Colores de chips por estado
+ *   formatearMoneda,      // Formatear valores
+ *   getIcono,             // Obtener iconos
+ *   crearChipEstado       // Crear chips de estado
+ * } = useCardUI()
+ * 
+ * <template>
+ *   <v-card-title class="bg-gradient-primary text-white">Título</v-card-title>
+ *   <div class="totales-container">{{ formatearMoneda(total) }}</div>
+ * </template>
+ * 
+ * ============================================================================
+ * 
+ * 📚 REFERENCIAS:
+ * @see Frontend/DESIGN_SYSTEM_README.md - Sistema de diseño completo
+ * @see Frontend/USE_CARD_UI_MIGRATION.md - Guía de migración
+ * @see Frontend/src/styles/design-system.css - Estilos globales
+ * 
+ * ============================================================================
+ * 
+ * @version 2.0.0
+ * @date 2026-01-01
+ * @author ServiCopias.net Team
  */
 export function useCardUI() {
-  // Configuración de gradientes
+  // Referencia a gradientes de variables CSS
+  // Estos valores se obtienen dinámicamente de :root en design-system.css
   const gradientes = {
-    primary: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    success: 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)',
-    info: 'linear-gradient(135deg, #0288d1 0%, #01579b 100%)',
-    warning: 'linear-gradient(135deg, #f57c00 0%, #e65100 100%)',
-    error: 'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
-    purple: 'linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%)'
+    primary: 'var(--gradient-primary)',
+    success: 'var(--gradient-success)',
+    info: 'var(--gradient-info)',
+    warning: 'var(--gradient-warning)',
+    error: 'var(--gradient-error)',
+    purple: 'var(--gradient-purple)'
   }
 
   // Configuración de colores para chips
@@ -86,91 +129,6 @@ export function useCardUI() {
   function getIcono(tipo) {
     return iconos[tipo] || 'mdi-help-circle'
   }
-
-  /**
-   * Estilos CSS como strings para usar en <style scoped>
-   */
-  const estilosGlobales = {
-    // Clases de gradiente
-    gradients: Object.keys(gradientes).map(key => `
-.bg-gradient-${key} {
-  background: ${gradientes[key]};
-}
-    `).join('\n'),
-
-    // Estilos de tabla
-    table: `
-.v-table {
-  font-size: 14px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.v-table thead tr th {
-  background-color: #f5f5f5;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
-}
-
-.producto-row:hover,
-.item-row:hover {
-  background-color: #f9f9f9;
-}
-    `,
-
-    // Estilos de texto
-    text: `
-.text-white {
-  color: white !important;
-}
-
-.text-primary {
-  color: #1976d2 !important;
-}
-
-.text-success {
-  color: #2e7d32 !important;
-}
-
-.text-grey {
-  color: #9e9e9e !important;
-}
-    `,
-
-    // Estilos de contenedores
-    containers: `
-.totales-container {
-  background-color: #f5f5f5;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.info-section {
-  padding: 12px;
-  background-color: #fafafa;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-    `,
-
-    // Responsive
-    responsive: `
-@media (max-width: 767px) {
-  .v-table {
-    font-size: 12px;
-  }
-}
-    `
-  }
-
-  /**
-   * Retorna todos los estilos como un string para copiar en <style scoped>
-   */
-  const todosLosEstilos = computed(() => {
-    return Object.values(estilosGlobales).join('\n')
-  })
 
   /**
    * Helper para crear chip de estado
@@ -253,10 +211,6 @@ export function useCardUI() {
     crearChipEstado,
     formatearMoneda,
     getEmptyStateConfig,
-    getPaginacionTexto,
-    
-    // Estilos
-    estilosGlobales,
-    todosLosEstilos
+    getPaginacionTexto
   }
 }

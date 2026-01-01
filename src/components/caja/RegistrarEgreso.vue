@@ -547,57 +547,46 @@ export default {
 </script>
 
 <style scoped>
-/* Variables CSS para mantener consistencia */
-:root {
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --slate-50: #f8fafc;
-  --slate-100: #f1f5f9;
-  --slate-200: #e2e8f0;
-  --slate-500: #64748b;
-  --slate-600: #475569;
-  --slate-700: #334155;
-}
+/* Integración con design-system global */
 
 /* Botón activador profesional */
 .professional-btn {
-  border-radius: 16px;
+  border-radius: var(--border-radius-lg);
   text-transform: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  transition: all var(--transition-smooth);
 }
 
 .professional-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+  box-shadow: var(--shadow-hover-error);
 }
 
 /* Dialog profesional */
 .professional-dialog :deep(.v-overlay__content) {
-  margin: 24px;
+  margin: var(--spacing-lg);
   max-width: 800px;
   width: calc(100vw - 48px);
 }
 
 .dialog-card {
-  border-radius: 24px;
+  border-radius: var(--border-radius-xl);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--surface-elevated);
   backdrop-filter: blur(20px);
 }
 
 /* Header del dialog */
 .dialog-header {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: var(--gradient-error);
   border-radius: 0;
 }
 
 .header-icon-wrapper {
   width: 60px;
   height: 60px;
-  border-radius: 16px;
+  border-radius: var(--border-radius-lg);
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -607,117 +596,117 @@ export default {
 
 /* Grupos de inputs */
 .input-group {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .input-label {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--slate-600);
-  margin-bottom: 8px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-grey-600);
+  margin-bottom: var(--spacing-sm);
 }
 
 /* Inputs profesionales */
 .professional-input :deep(.v-field),
 .professional-select :deep(.v-field),
 .professional-textarea :deep(.v-field) {
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-base);
   border-width: 2px;
 }
 
 .professional-input :deep(.v-field):hover,
 .professional-select :deep(.v-field):hover,
 .professional-textarea :deep(.v-field):hover {
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: var(--shadow-medium);
 }
 
 .professional-input :deep(.v-field--focused),
 .professional-select :deep(.v-field--focused),
 .professional-textarea :deep(.v-field--focused) {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  box-shadow: var(--shadow-focus);
 }
 
 .change-input :deep(.v-field) {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+  background: var(--gradient-warning-subtle);
 }
 
 /* Tarjeta de resumen */
 .summary-card {
-  border-radius: 20px;
-  border: 2px solid var(--slate-200);
-  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--border-color);
+  background: var(--surface-elevated);
   backdrop-filter: blur(10px);
   overflow: hidden;
 }
 
 .summary-header {
-  background: linear-gradient(135deg, var(--slate-600), var(--slate-700));
-  color: white;
+  background: var(--gradient-secondary);
+  color: var(--color-white);
 }
 
 .summary-item {
-  padding: 12px 0;
+  padding: var(--spacing-md) 0;
 }
 
 .summary-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--slate-500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-grey-500);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: var(--spacing-xs);
 }
 
 .summary-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--slate-700);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-grey-700);
 }
 
 /* Botones de acción */
 .dialog-actions {
-  border-top: 1px solid var(--slate-200);
-  background: var(--slate-50);
+  border-top: 1px solid var(--border-color);
+  background: var(--color-grey-50);
 }
 
 .action-btn-cancel {
-  border-radius: 16px;
+  border-radius: var(--border-radius-lg);
   text-transform: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  margin-right: 12px;
-  transition: all 0.3s ease;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  margin-right: var(--spacing-md);
+  transition: all var(--transition-base);
 }
 
 .action-btn-cancel:hover {
   transform: translateY(-2px);
-  background: rgba(100, 116, 139, 0.1);
+  background: var(--hover-background);
 }
 
 .action-btn-save {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  border-radius: 16px;
+  background: var(--gradient-error);
+  border-radius: var(--border-radius-lg);
   text-transform: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  transition: all var(--transition-smooth);
 }
 
 .action-btn-save:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--shadow-hover-error);
 }
 
 /* Snackbar profesional */
 .professional-snackbar {
-  border-radius: 16px;
+  border-radius: var(--border-radius-lg);
 }
 
 .professional-snackbar :deep(.v-snackbar__content) {
-  padding: 16px 24px;
-  border-radius: 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
 }
 
 /* Animaciones */
@@ -740,19 +729,19 @@ export default {
 .professional-input :deep(.v-field--error),
 .professional-select :deep(.v-field--error),
 .professional-textarea :deep(.v-field--error) {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  border-color: var(--color-error);
+  box-shadow: var(--shadow-error);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .professional-dialog :deep(.v-overlay__content) {
-    margin: 12px;
+    margin: var(--spacing-md);
     width: calc(100vw - 24px);
   }
   
   .dialog-header {
-    padding: 20px !important;
+    padding: var(--spacing-lg) !important;
   }
   
   .header-icon-wrapper {
@@ -763,7 +752,7 @@ export default {
   .action-btn-cancel,
   .action-btn-save {
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: var(--spacing-md);
   }
 }
 
@@ -777,13 +766,13 @@ export default {
 .professional-input :deep(.v-field__input),
 .professional-select :deep(.v-field__input),
 .professional-textarea :deep(.v-field__input) {
-  padding: 12px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
 }
 
 /* Iconos en inputs */
 .professional-input :deep(.v-field__prepend-inner),
 .professional-select :deep(.v-field__prepend-inner),
 .professional-textarea :deep(.v-field__prepend-inner) {
-  padding-top: 12px;
+  padding-top: var(--spacing-md);
 }
 </style>

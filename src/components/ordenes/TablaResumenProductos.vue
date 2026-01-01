@@ -2,7 +2,7 @@
   <v-card elevation="2" class="mt-4">
     <!-- Header con gradiente -->
     <v-card-title 
-      class="text-white d-flex align-center" 
+      class="header-card d-flex align-center" 
       :style="{ background: headerConfig.gradiente }"
     >
       <v-icon class="mr-3">{{ headerConfig.icono }}</v-icon>
@@ -144,38 +144,44 @@ const totalGeneral = computed(() => {
 </script>
 
 <style scoped>
-/* Estilos de UI compartidos */
+/* Estilos de UI compartidos con design-system */
 .text-white {
-  color: white !important;
+  color: var(--color-white) !important;
 }
 
 .v-table {
-  font-size: 14px;
-  border-radius: 8px;
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius-md);
   overflow: hidden;
+  box-shadow: var(--shadow-small);
 }
 
 .v-table thead tr th {
-  background-color: #f5f5f5;
-  font-weight: 600;
+  background-color: var(--color-grey-50);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.producto-row {
+  transition: background-color var(--transition-fast);
 }
 
 .producto-row:hover {
-  background-color: #f9f9f9;
+  background-color: var(--color-grey-50);
 }
 
 .totales-container {
-  background-color: #f5f5f5;
-  padding: 16px;
-  border-radius: 8px;
+  background: var(--gradient-subtle);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-small);
 }
 
 @media (max-width: 767px) {
   .v-table {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
   }
 }
 </style>

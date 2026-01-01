@@ -112,10 +112,53 @@ const seleccionarProducto = (producto) => {
 <style scoped>
 .cursor-pointer {
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all var(--transition-base);
+  border-radius: var(--border-radius);
 }
 
 .cursor-pointer:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-light);
+}
+
+:deep(.v-card-text) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.v-avatar) {
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+}
+
+:deep(.v-chip) {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+:deep(.v-btn) {
+  transition: all var(--transition-fast);
+}
+
+:deep(.v-btn:hover) {
+  transform: scale(1.15);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Scrollbar personalizado */
+:deep(.v-card-text::-webkit-scrollbar) {
+  width: 8px;
+}
+
+:deep(.v-card-text::-webkit-scrollbar-track) {
+  background: var(--background-light);
+  border-radius: var(--border-radius-sm);
+}
+
+:deep(.v-card-text::-webkit-scrollbar-thumb) {
+  background: var(--success-color);
+  border-radius: var(--border-radius-sm);
+}
+
+:deep(.v-card-text::-webkit-scrollbar-thumb:hover) {
+  background: var(--secondary-dark);
 }
 </style>

@@ -358,11 +358,11 @@ const cancelarPago = async () => {
   try {
     // Eliminar orden de la base de datos
     await ordenesService.delete(ordenTemporal.value.id);
-    console.log('✅ Orden eliminada:', ordenTemporal.value.id);
+    console.log('Orden eliminada:', ordenTemporal.value.id);
     
     mostrarNotificacion('Pago cancelado. La orden fue eliminada.', 'info', 'mdi-information');
   } catch (error) {
-    console.error('❌ Error al eliminar orden:', error);
+    console.error('Error al eliminar orden:', error);
     mostrarNotificacion('Error al eliminar orden', 'error', 'mdi-alert-circle');
   } finally {
     dialogAbono.value = false;
@@ -501,15 +501,43 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .pos-view {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--pos-gradient-background);
   min-height: 100vh;
 }
 
 .pos-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--pos-gradient-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-large);
+  transition: all var(--transition-base);
+}
+
+.pos-header:hover {
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px);
 }
 
 :deep(.v-chip--variant-outlined) {
   border-width: 2px;
+  transition: all var(--transition-base);
+}
+
+:deep(.v-chip--variant-outlined:hover) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm);
+}
+
+:deep(.v-card) {
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-base);
+}
+
+:deep(.v-btn) {
+  transition: all var(--transition-base);
+}
+
+:deep(.v-btn:hover) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-light);
 }
 </style>

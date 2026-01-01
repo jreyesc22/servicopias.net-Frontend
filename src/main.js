@@ -7,6 +7,9 @@ import 'roboto-fontface/css/roboto/roboto-fontface.css'
 import 'vuetify/styles'
 import '@mdi/font/css/materialdesignicons.css'
 
+// Sistema de diseño global
+import './styles/design-system.css'
+
 // Suprimir errores de ResizeObserver en desarrollo
 const resizeObserverErr = window.console.error
 window.console.error = (...args) => {
