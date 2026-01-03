@@ -445,7 +445,7 @@ const cargarEmpleado = () => {
     // Intentar cargar desde 'empleado' primero, luego desde 'user' (fallback)
     let empleadoData = localStorage.getItem('empleado');
     if (!empleadoData) {
-      console.log('⚠️ No se encontró "empleado", intentando con "user"...');
+      console.log('No se encontró "empleado", intentando con "user"...');
       empleadoData = localStorage.getItem('user');
     }
 
@@ -465,7 +465,7 @@ const cargarEmpleado = () => {
     // Si se cargó desde 'user', guardarlo también como 'empleado' para próximas veces
     if (!localStorage.getItem('empleado')) {
       localStorage.setItem('empleado', JSON.stringify(empleado));
-      console.log('✅ Empleado guardado en localStorage como "empleado"');
+      console.log('Empleado guardado en localStorage como "empleado"');
     }
 
     nombreEmpleado.value = empleado.nombre;
@@ -506,7 +506,7 @@ onBeforeUnmount(() => {
 }
 
 .pos-header {
-  background: var(--pos-gradient-primary);
+  background: var(--primary-color);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-large);
   transition: all var(--transition-base);

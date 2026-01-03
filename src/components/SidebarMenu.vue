@@ -7,8 +7,8 @@
         :aria-label="isMobile || isTablet ? 'Abrir menú de navegación' : (mini ? 'Expandir menú' : 'Contraer menú')"
         :loading="loading"
       >
-        <v-icon v-if="!isMobile && !isTablet">
-          {{ mini ? 'mdi-menu-open' : 'mdi-menu' }}
+        <v-icon>
+          {{ (!isMobile && !isTablet && mini) ? 'mdi-menu-open' : 'mdi-menu' }}
         </v-icon>
       </v-app-bar-nav-icon>
       

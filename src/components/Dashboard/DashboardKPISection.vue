@@ -38,17 +38,6 @@
 
       <v-col cols="12" sm="6" md="3">
         <DashboardKPICard
-          title="Ticket Promedio"
-          :value="kpis.ticketPromedio"
-          icon="mdi-calculator"
-          variant="info"
-          format-as-currency
-          subtitle="Por orden"
-        />
-      </v-col>
-
-      <v-col cols="12" sm="6" md="3">
-        <DashboardKPICard
           title="Total Unidades"
           :value="kpis.totalUnidades || 0"
           icon="mdi-package-variant"

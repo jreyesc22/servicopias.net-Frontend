@@ -1,5 +1,5 @@
 <template>
-  <v-card elevation="3" class="scanner-input-card">
+  <v-card elevation="3" class="scanner-input-card" @click="enfocarInput">
     <v-card-text class="pa-4">
       <!-- Input de código de barras -->
       <v-text-field
@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
   procesando: {
@@ -214,7 +214,18 @@ defineExpose({
 // Auto-enfocar al montar
 onMounted(() => {
   enfocarInput();
+  window.addEventListener('focus', handleWindowFocus);
 });
+
+onUnmounted(() => {
+  window.removeEventListener('focus', handleWindowFocus);
+});
+
+const handleWindowFocus = () => {
+  if (!props.deshabilitado) {
+    enfocarInput();
+  }
+};
 
 // Re-enfocar cuando se habilita
 watch(() => props.deshabilitado, (nuevo) => {
@@ -226,7 +237,7 @@ watch(() => props.deshabilitado, (nuevo) => {
 
 <style scoped>
 .scanner-input-card {
-  background: var(--pos-gradient-primary);
+  background: var(--warning-color);
   color: white;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-medium);
@@ -244,7 +255,7 @@ watch(() => props.deshabilitado, (nuevo) => {
 }
 
 .scanner-input-card :deep(.v-field:focus-within) {
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 0 0 3px rgba(61, 88, 209, 0.2);
   transform: translateY(-2px);
 }
 
