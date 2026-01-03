@@ -155,6 +155,7 @@
           v-else
           :orden="ordenParaCaja"
           :tipos-de-pago="tiposDePago"
+          :efectivo-id="efectivoId"
           :empleado-id="usuarioActual?.id"
           @abono-registrado="manejarAbonoRegistrado"
           @terminar="avanzarDespuesPago"
@@ -468,7 +469,8 @@ export default {
       },
       
       // Tipos de pago para AbonarOrden
-      tiposDePago: []
+      tiposDePago: [],
+      efectivoId: 1
     }
   },
   computed: {
@@ -925,6 +927,15 @@ export default {
     const { tiposPago, fetchTiposPago } = useTiposPago()
     await fetchTiposPago()
     this.tiposDePago = tiposPago.value
+
+    // Derivar el ID de efectivo (asegurar tipo numérico)
+    const efectivo = this.tiposDePago.find(tp => String(tp?.nombre || '').toLowerCase().includes('efectivo'))
+    if (efectivo?.id != null) {
+      const idNum = Number(efectivo.id)
+      if (Number.isFinite(idNum)) {
+        this.efectivoId = idNum
+      }
+    }
   }
 }
 </script>

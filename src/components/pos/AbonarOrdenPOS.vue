@@ -51,14 +51,11 @@
                     <span class="text-caption">A pagar:</span>
                     <span class="font-weight-bold">Q {{ formatMoney(monto) }}</span>
                   </div>
-                  <div v-if="tipoPago === efectivoId && efectivoRecibido > monto" class="d-flex justify-space-between align-center text-success mb-1">
+                  <div v-if="esEfectivo && cambio > 0" class="d-flex justify-space-between align-center text-success mb-1">
                     <span class="text-caption">Cambio:</span>
                     <span class="font-weight-bold">Q {{ formatMoney(cambio) }}</span>
                   </div>
-                  <div v-if="tipoPagoSeleccionado === 'parcial'" class="d-flex justify-space-between align-center text-warning">
-                    <span class="text-caption">Nuevo saldo:</span>
-                    <span class="font-weight-bold">Q {{ formatMoney(saldoRestante) }}</span>
-                  </div>
+
                 </v-card-text>
               </v-card>
             </v-expand-transition>
@@ -67,24 +64,6 @@
           <!-- Columna derecha: Formulario -->
           <v-col cols="12" md="7">
             <v-form ref="form" v-model="formValido" @submit.prevent="registrarAbono">
-              <!-- Tipo de pago en fila -->
-              <div class="mb-3">
-                <div class="text-body-2 font-weight-medium mb-2">Tipo de pago</div>
-                <v-chip-group
-                  v-model="tipoPagoChip"
-                  mandatory
-                  selected-class="text-primary"
-                  @update:model-value="actualizarTipoPago"
-                >
-                  <v-chip value="completo" size="small" variant="outlined">
-                    Completo
-                  </v-chip>
-                  <v-chip value="parcial" size="small" variant="outlined">
-                    Parcial
-                  </v-chip>
-                </v-chip-group>
-              </div>
-
               <!-- Fila de campos principales -->
               <v-row dense class="mb-2">
                 <v-col cols="12" sm="6">
@@ -102,41 +81,27 @@
                   />
                 </v-col>
                 
-                <!-- Monto (parcial) o Efectivo recibido -->
+                <!-- Efectivo recibido (solo para efectivo) -->
                 <v-col cols="12" sm="6">
-                  <v-slide-y-transition>
-                    <v-text-field
-                      v-if="tipoPagoSeleccionado === 'parcial'"
-                      v-model.number="monto"
-                      label="Monto abono"
-                      type="number"
-                      step="0.01"
-                      variant="outlined"
-                      density="compact"
-                      prefix="Q"
-                      prepend-inner-icon="mdi-cash"
-                      :rules="reglasValidacionMonto"
-                      @input="validarMonto"
-                      required
-                    />
-                    <v-text-field
-                      v-else-if="tipoPago === efectivoId"
-                      v-model.number="efectivoRecibido"
-                      label="Efectivo recibido"
-                      type="number"
-                      step="0.01"
-                      variant="outlined"
-                      density="compact"
-                      prefix="Q"
-                      prepend-inner-icon="mdi-cash-100"
-                      :rules="reglasValidacionEfectivo"
-                      hint="Ingrese el efectivo recibido del cliente"
-                      required
-                    />
-                    <div v-else class="text-caption text-grey px-3">
-                      Monto a pagar: Q {{ formatMoney(monto) }}
-                    </div>
-                  </v-slide-y-transition>
+                  <v-text-field
+                    v-if="esEfectivo"
+                    v-model.number="efectivoRecibido"
+                    label="Efectivo recibido"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    variant="outlined"
+                    density="compact"
+                    prefix="Q"
+                    prepend-inner-icon="mdi-cash-100"
+                    :rules="reglasValidacionEfectivo"
+                    hint="Ingrese el efectivo recibido del cliente"
+                    persistent-hint
+                    required
+                  />
+                  <div v-else class="text-caption text-grey px-3 py-3">
+                    Monto a pagar: Q {{ formatMoney(monto) }}
+                  </div>
                 </v-col>
               </v-row>
 
@@ -203,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import abonosService from '@/services/abonos.service';
 import { printerService } from '@/services/printer.service';
 
@@ -246,12 +211,28 @@ const formValido = ref(false);
 const cargando = ref(false);
 
 // Datos de pago
-const tipoPagoChip = ref('completo');
 const tipoPago = ref(props.efectivoId);
 const monto = ref(null);
 const efectivoRecibido = ref(null);
 const numeroRecibo = ref('');
 const observacion = ref('');
+
+/**
+ * Normalización de IDs (Vuetify puede devolver strings)
+ */
+const efectivoIdNum = computed(() => Number(props.efectivoId));
+const tipoPagoIdNum = computed(() => Number(tipoPago.value));
+const esEfectivo = computed(() => tipoPagoIdNum.value === efectivoIdNum.value);
+
+const montoNum = computed(() => {
+  const n = Number(monto.value);
+  return Number.isFinite(n) ? n : 0;
+});
+
+const efectivoRecibidoNum = computed(() => {
+  const n = Number(efectivoRecibido.value);
+  return Number.isFinite(n) ? n : 0;
+});
 
 /**
  * Computed - Cálculos
@@ -261,26 +242,22 @@ const saldoPendiente = computed(() => {
   return parseFloat(props.orden.saldo_pendiente) || parseFloat(props.orden.total) || 0;
 });
 
-const tipoPagoSeleccionado = computed(() => {
-  return tipoPagoChip.value === 'completo' ? 'completo' : 'parcial';
-});
-
 const tipoPagoNombre = computed(() => {
-  const tipo = props.tiposDePago.find(t => t.id === tipoPago.value);
+  const tipo = props.tiposDePago.find(t => Number(t.id) === tipoPagoIdNum.value);
   return tipo?.nombre?.toLowerCase() || '';
 });
 
 const cambio = computed(() => {
-  if (tipoPago.value !== props.efectivoId || !efectivoRecibido.value) {
+  if (!esEfectivo.value) {
     return 0;
   }
-  const recibido = parseFloat(efectivoRecibido.value) || 0;
-  const montoVal = parseFloat(monto.value) || 0;
+  const recibido = efectivoRecibidoNum.value;
+  const montoVal = montoNum.value;
   return Math.max(0, recibido - montoVal);
 });
 
 const saldoRestante = computed(() => {
-  const montoVal = parseFloat(monto.value) || 0;
+  const montoVal = montoNum.value;
   return Math.max(0, saldoPendiente.value - montoVal);
 });
 
@@ -294,11 +271,11 @@ const etiquetaDocumento = computed(() => {
 });
 
 const textoBoton = computed(() => {
-  return tipoPagoSeleccionado.value === 'completo' ? 'Pagar Total' : 'Registrar Abono';
+  return 'Procesar';
 });
 
 const requiereNumeroRecibo = computed(() => {
-  if (tipoPago.value === props.efectivoId) {
+  if (esEfectivo.value) {
     return false;
   }
   
@@ -321,53 +298,13 @@ const tipoComprobanteTexto = computed(() => {
 });
 
 const formularioCompleto = computed(() => {
-  // Validar que exista orden
-  if (!props.orden) {
-    console.log('formularioCompleto: No hay orden');
-    return false;
-  }
+  if (!props.orden || !tipoPago.value) return false;
 
-  // Validar tipo de pago seleccionado
-  if (!tipoPago.value) {
-    console.log('formularioCompleto: No hay tipo de pago');
-    return false;
-  }
-
-  if (tipoPagoSeleccionado.value === 'completo') {
-    const montoValido = monto.value > 0;
-    const efectivoValido = tipoPago.value !== props.efectivoId || (efectivoRecibido.value && efectivoRecibido.value >= monto.value);
-    const reciboValido = !requiereNumeroRecibo.value || !!numeroRecibo.value?.trim();
-    
-    console.log('🔍 Validación COMPLETO:', {
-      tipoPagoSeleccionado: tipoPagoSeleccionado.value,
-      monto: monto.value,
-      montoValido,
-      efectivoRecibido: efectivoRecibido.value,
-      efectivoId: props.efectivoId,
-      tipoPago: tipoPago.value,
-      efectivoValido,
-      requiereRecibo: requiereNumeroRecibo.value,
-      numeroRecibo: numeroRecibo.value,
-      reciboValido,
-      resultado: montoValido && efectivoValido && reciboValido
-    });
-    
-    return montoValido && efectivoValido && reciboValido;
-  } else {
-    const montoValido = monto.value > 0 && monto.value <= saldoPendiente.value;
-    const reciboValido = !requiereNumeroRecibo.value || !!numeroRecibo.value?.trim();
-    
-    console.log('🔍 Validación PARCIAL:', {
-      monto: monto.value,
-      saldoPendiente: saldoPendiente.value,
-      montoValido,
-      requiereRecibo: requiereNumeroRecibo.value,
-      reciboValido,
-      resultado: montoValido && reciboValido
-    });
-    
-    return montoValido && reciboValido;
-  }
+  const montoValido = montoNum.value > 0;
+  const efectivoValido = !esEfectivo.value || (Number.isFinite(Number(efectivoRecibido.value)) && efectivoRecibidoNum.value >= montoNum.value);
+  const reciboValido = !requiereNumeroRecibo.value || !!numeroRecibo.value?.trim();
+  
+  return montoValido && efectivoValido && reciboValido;
 });
 
 /**
@@ -385,7 +322,7 @@ const reglasValidacionMonto = [
 
 const reglasValidacionEfectivo = computed(() => [
   v => !!v || 'Ingrese el efectivo recibido',
-  v => v >= monto.value || 'El efectivo debe ser mayor o igual al monto'
+  v => Number(v) >= montoNum.value || `El efectivo debe ser mayor o igual a Q ${formatMoney(montoNum.value)}`
 ]);
 
 const reglasNumeroRecibo = computed(() => [
@@ -400,39 +337,7 @@ const formatMoney = (valor) => {
   return isNaN(numero) ? '0.00' : numero.toFixed(2);
 };
 
-/**
- * Actualizar tipo de pago
- */
-const actualizarTipoPago = () => {
-  console.log('🔄 Cambiando tipo de pago a:', tipoPagoChip.value);
-  
-  if (tipoPagoChip.value === 'completo') {
-    monto.value = saldoPendiente.value;
-    // Pre-llenar efectivo recibido con el monto exacto para pago completo
-    if (tipoPago.value === props.efectivoId) {
-      efectivoRecibido.value = saldoPendiente.value;
-    }
-  } else {
-    // Parcial - sugerir 50% del saldo
-    monto.value = Math.round(saldoPendiente.value * 0.5 * 100) / 100;
-    efectivoRecibido.value = null;
-  }
-  
-  console.log('✅ Valores actualizados:', {
-    monto: monto.value,
-    efectivoRecibido: efectivoRecibido.value
-  });
-};
 
-/**
- * Validar monto
- */
-const validarMonto = () => {
-  const montoVal = parseFloat(monto.value);
-  if (montoVal > saldoPendiente.value) {
-    // Se maneja con las reglas de validación
-  }
-};
 
 /**
  * Registrar abono
@@ -456,8 +361,8 @@ const registrarAbono = async () => {
   try {
     const payload = {
       ordenId: props.orden.id,
-      tipoPagoId: tipoPago.value,
-      monto: parseFloat(monto.value),
+      tipoPagoId: tipoPagoIdNum.value,
+      monto: montoNum.value,
       numero_recibo: requiereNumeroRecibo.value ? numeroRecibo.value.trim() : null,
       empleadoId: props.empleadoId,
       observacion: observacion.value?.trim() || null
@@ -466,7 +371,7 @@ const registrarAbono = async () => {
     const data = await abonosService.registrarAbono(payload);
     
     // Abrir cajón de dinero si es efectivo
-    if (tipoPago.value === props.efectivoId) {
+    if (esEfectivo.value) {
       try {
         await printerService.abrirCajon();
       } catch (errorCajon) {
@@ -474,18 +379,18 @@ const registrarAbono = async () => {
       }
     }
     
-    const cambioCalculado = tipoPago.value === props.efectivoId && efectivoRecibido.value > monto.value
-      ? efectivoRecibido.value - monto.value
+    const cambioCalculado = esEfectivo.value && efectivoRecibidoNum.value > montoNum.value
+      ? efectivoRecibidoNum.value - montoNum.value
       : 0;
     
     // Emitir evento con información completa
     emit('abono-registrado', {
       abono: data.data,
-      monto: parseFloat(monto.value),
+      monto: montoNum.value,
       cambio: cambioCalculado,
-      efectivoRecibido: efectivoRecibido.value || null,
-      tipoPago: props.tiposDePago.find(t => t.id === tipoPago.value)?.nombre || 'Desconocido',
-      tipoPagoId: tipoPago.value,
+      efectivoRecibido: esEfectivo.value ? efectivoRecibidoNum.value : null,
+      tipoPago: props.tiposDePago.find(t => Number(t.id) === tipoPagoIdNum.value)?.nombre || 'Desconocido',
+      tipoPagoId: tipoPagoIdNum.value,
       estadoPago: data.estado_pago,
       abonado: data.abonado,
       saldoPendiente: data.saldo_pendiente,
@@ -495,6 +400,9 @@ const registrarAbono = async () => {
 
     // Cerrar dialog
     dialogVisible.value = false;
+    
+    // Resetear después de cerrar
+    await nextTick();
     resetForm();
 
   } catch (error) {
@@ -516,6 +424,9 @@ const cancelar = async () => {
 
   emit('cancelar');
   dialogVisible.value = false;
+  
+  // Resetear al cerrar
+  await nextTick();
   resetForm();
 };
 
@@ -524,7 +435,7 @@ const cancelar = async () => {
  */
 const resetForm = () => {
   monto.value = null;
-  tipoPago.value = props.efectivoId;
+  tipoPago.value = efectivoIdNum.value;
   numeroRecibo.value = '';
   observacion.value = '';
   efectivoRecibido.value = null;
@@ -532,50 +443,61 @@ const resetForm = () => {
 };
 
 /**
- * Watch para inicializar cuando se abre
+ * Inicializar formulario con datos de la orden
  */
-watch(dialogVisible, async (nuevo) => {
-  console.log('👁️ Dialog visible cambió a:', nuevo);
-  if (nuevo && props.orden) {
-    // Esperar al siguiente tick para asegurar que el DOM esté listo
-    await nextTick();
-    
-    // Inicializar valores
-    tipoPagoChip.value = 'completo';
-    tipoPago.value = props.efectivoId;
-    monto.value = saldoPendiente.value;
-    numeroRecibo.value = '';
-    observacion.value = '';
-    
-    // Importante: usar nextTick otra vez para asegurar que efectivoRecibido se aplique
-    await nextTick();
-    efectivoRecibido.value = saldoPendiente.value;
-    
-    console.log('✅ Modal inicializado:', {
-      tipoPagoChip: tipoPagoChip.value,
-      monto: monto.value,
-      efectivoRecibido: efectivoRecibido.value,
-      saldoPendiente: saldoPendiente.value
-    });
-  }
-});
-
-watch(() => props.tiposDePago, (nuevosTipos) => {
-  if (nuevosTipos?.length > 0 && !tipoPago.value) {
-    tipoPago.value = props.efectivoId;
-  }
-}, { immediate: true });
-
-watch(tipoPago, (nuevoTipo) => {
-  console.log('💳 Tipo de pago cambió a:', nuevoTipo);
+const inicializarFormulario = () => {
+  if (!props.orden) return;
   
-  if (!requiereNumeroRecibo.value) {
-    numeroRecibo.value = '';
+  const saldo = parseFloat(props.orden.saldo_pendiente) || parseFloat(props.orden.total) || 0;
+  
+  tipoPago.value = efectivoIdNum.value;
+  monto.value = saldo;
+  efectivoRecibido.value = saldo;
+  numeroRecibo.value = '';
+  observacion.value = '';
+};
+
+/**
+ * Watch: Inicializar cuando se abre el modal
+ */
+watch(
+  () => props.modelValue,
+  async (visible) => {
+    if (!visible) return;
+    if (!props.orden) return;
+    await nextTick();
+    inicializarFormulario();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.orden?.id,
+  async (ordenId) => {
+    if (!props.modelValue) return;
+    if (!ordenId) return;
+    await nextTick();
+    inicializarFormulario();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => tipoPago.value,
+  (nuevo) => {
+    // Forzar tipo numérico (evita fallos en v-if y comparaciones)
+    const coerced = Number(nuevo);
+    if (Number.isFinite(coerced) && coerced !== nuevo) {
+      tipoPago.value = coerced;
+    }
   }
-  // Si cambia a efectivo en modo completo, pre-llenar
-  if (nuevoTipo === props.efectivoId && tipoPagoSeleccionado.value === 'completo') {
-    efectivoRecibido.value = monto.value;
-    console.log('✅ Pre-llenado efectivo:', efectivoRecibido.value);
+);
+
+onMounted(async () => {
+  // Respaldo: si el componente se monta ya visible, los watch sin immediate no correrían.
+  if (props.modelValue && props.orden) {
+    await nextTick();
+    inicializarFormulario();
   }
 });
 </script>

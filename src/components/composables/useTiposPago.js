@@ -22,7 +22,16 @@ export function useTiposPago() {
     
     try {
       const response = await TipoPagoService.getAll();
-      tiposPago.value = response;
+      const raw = response?.data ?? response;
+      if (!Array.isArray(raw)) {
+        throw new Error('Formato inesperado al cargar tipos de pago');
+      }
+
+      // Normalizar IDs a número para evitar comparaciones string vs number
+      tiposPago.value = raw.map((tp) => ({
+        ...tp,
+        id: Number(tp.id)
+      }));
       initialized.value = true;
     } catch (err) {
       console.error('Error al obtener tipos de pago:', err);

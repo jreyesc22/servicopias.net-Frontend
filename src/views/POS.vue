@@ -150,15 +150,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { usePOS } from '@/components/composables/usePOS';
 import POSService from '@/services/pos.service';
 import ordenesService from '@/services/ordenes.service';
+import { printerService } from '@/services/printer.service';
+import { generarContenidoTicket } from '@/utils/ticketTemplate';
+import { ESC_POS } from '@/utils/printerCommands';
 import ScannerInput from '@/components/pos/ScannerInput.vue';
 import CarritoPOS from '@/components/pos/CarritoPOS.vue';
 import AbonarOrdenPOS from '@/components/pos/AbonarOrdenPOS.vue';
 import ProductosPopulares from '@/components/pos/ProductosPopulares.vue';
-import tipoPagoService from '@/services/tipo_pago.service';
+import { useTiposPago } from '@/components/composables/useTiposPago';
 
 // Composable del POS
 const {
@@ -185,8 +188,26 @@ const dialogAbono = ref(false);
 const dialogExito = ref(false);
 const productosPopulares = ref([]);
 const cargandoPopulares = ref(false);
-const tiposDePago = ref([]);
+
+// Tipos de pago (estado global compartido)
+const { tiposPago, fetchTiposPago } = useTiposPago();
+const tiposDePago = computed(() => tiposPago.value);
 const efectivoId = ref(1);
+
+watch(
+  tiposPago,
+  (lista) => {
+    if (!Array.isArray(lista) || lista.length === 0) return;
+    const efectivo = lista.find(tp => String(tp?.nombre || '').toLowerCase().includes('efectivo'));
+    if (efectivo?.id != null) {
+      const idNum = Number(efectivo.id);
+      if (Number.isFinite(idNum)) {
+        efectivoId.value = idNum;
+      }
+    }
+  },
+  { immediate: true }
+);
 const horaActual = ref('');
 const nombreEmpleado = ref('');
 const empleadoId = ref(null);
@@ -327,7 +348,8 @@ const manejarAbonoRegistrado = (datosAbono) => {
     cambio: datosAbono.cambio,
     efectivoRecibido: datosAbono.efectivoRecibido,
     tipoPago: datosAbono.tipoPago,
-    ordenCompletada: datosAbono.ordenCompletada
+    ordenCompletada: datosAbono.ordenCompletada,
+    orden: { ...ordenTemporal.value } // Guardar copia completa para impresión
   };
 
   // Limpiar carrito y mostrar éxito
@@ -382,11 +404,43 @@ const nuevaVenta = () => {
 };
 
 /**
- * Imprimir ticket (placeholder)
+ * Imprimir ticket
  */
-const imprimirTicket = () => {
-  mostrarNotificacion('Función de impresión en desarrollo', 'info', 'mdi-information');
-  // TODO: Integrar con TicketPrinter.vue
+const imprimirTicket = async () => {
+  if (!ultimaVenta.value?.orden) {
+    mostrarNotificacion('No hay datos de venta para imprimir', 'warning', 'mdi-alert');
+    return;
+  }
+
+  try {
+    mostrarNotificacion('Imprimiendo ticket...', 'info', 'mdi-printer');
+    
+    // Preparar datos de pago para el template
+    const datosPago = {
+      monto_pagado: ultimaVenta.value.efectivoRecibido || ultimaVenta.value.total,
+      vuelto: ultimaVenta.value.cambio || 0,
+      forma_pago: ultimaVenta.value.tipoPago
+    };
+
+    // Generar texto del ticket
+    const contenidoTicket = generarContenidoTicket(ultimaVenta.value.orden, datosPago);
+    
+    // Combinar con comandos ESC/POS
+    const ticketRaw = 
+      ESC_POS.INIT +
+      ESC_POS.ALIGN_CENTER +
+      contenidoTicket +
+      ESC_POS.FEED_LINES(4) +
+      ESC_POS.CUT_FULL;
+
+    // Enviar a imprimir
+    await printerService.imprimirRaw(ticketRaw);
+    
+    mostrarNotificacion('Ticket impreso correctamente', 'success', 'mdi-check');
+  } catch (error) {
+    console.error('Error al imprimir:', error);
+    mostrarNotificacion('Error al imprimir ticket: ' + error.message, 'error', 'mdi-alert');
+  }
 };
 
 /**
@@ -417,24 +471,6 @@ const actualizarHora = () => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-/**
- * Cargar tipos de pago
- */
-const cargarTiposPago = async () => {
-  try {
-    tiposDePago.value = await tipoPagoService.getAll();
-    // Buscar el ID del efectivo
-    const efectivo = tiposDePago.value.find(tp => 
-      tp.nombre.toLowerCase().includes('efectivo')
-    );
-    if (efectivo) {
-      efectivoId.value = efectivo.id;
-    }
-  } catch (err) {
-    console.error('Error al cargar tipos de pago:', err);
-  }
 };
 
 /**
@@ -488,7 +524,7 @@ onMounted(async () => {
   intervaloHora = setInterval(actualizarHora, 1000);
   
   cargarEmpleado();
-  await cargarTiposPago();
+  await fetchTiposPago();
   await cargarProductosPopulares();
 });
 

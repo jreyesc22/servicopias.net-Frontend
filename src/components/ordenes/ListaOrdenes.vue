@@ -453,6 +453,7 @@
             v-if="ordenSeleccionada"
             :orden="ordenSeleccionada"
             :tipos-de-pago="tiposDePago"
+            :efectivo-id="efectivoId"
             :empleado-id="empleadoId"
             @abono-registrado="manejarAbonoRegistrado"
             @terminar="cerrarAbono"
@@ -539,6 +540,7 @@ export default {
       dialogAbonar: false,
       pagosCaja: [],
       tiposDePago: [],
+      efectivoId: 1,
       empleadoId: null,
 
       // Estado para PDF
@@ -688,7 +690,25 @@ export default {
     async cargarTiposDePago() {
       try {
         const res = await fetch(`${process.env.VUE_APP_API_URL}/tipos_pago/all`)
-        this.tiposDePago = await res.json()
+        const raw = await res.json()
+        if (!Array.isArray(raw)) {
+          throw new Error('Formato inesperado al cargar tipos de pago')
+        }
+
+        // Normalizar ids a número
+        this.tiposDePago = raw.map(tp => ({
+          ...tp,
+          id: Number(tp.id)
+        }))
+
+        // Derivar ID de efectivo
+        const efectivo = this.tiposDePago.find(tp => String(tp?.nombre || '').toLowerCase().includes('efectivo'))
+        if (efectivo?.id != null) {
+          const idNum = Number(efectivo.id)
+          if (Number.isFinite(idNum)) {
+            this.efectivoId = idNum
+          }
+        }
       } catch (err) {
         console.error('Error al cargar tipos de pago', err)
         this.mostrarSnackbar({
