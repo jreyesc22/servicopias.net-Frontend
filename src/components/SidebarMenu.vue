@@ -1,5 +1,4 @@
 <template>
-  <v-app>
     <!-- Barra superior con botón hamburguesa -->
     <v-app-bar app color="primary" dark elevation="2">
       <!-- Botón unificado: toggle drawer en mobile, toggle mini en desktop -->
@@ -198,22 +197,12 @@
       </template>
     </v-navigation-drawer>
 
-    <!-- Contenido principal -->
-    <v-main>
-      <v-container fluid class="pa-4">
-        <transition name="fade" mode="out-in">
-          <router-view />
-        </transition>
-      </v-container>
-    </v-main>
-
     <!-- Overlay para móvil y tablet -->
     <v-overlay 
       v-if="(isMobile || isTablet) && drawer" 
       @click="drawer = false"
       class="d-lg-none"
     />
-  </v-app>
 </template>
 
 <script>
@@ -411,16 +400,6 @@ export default {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
 .active-item {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
   border-left: 3px solid #ffffff;
@@ -504,10 +483,6 @@ export default {
 @media (max-width: 400px) {
   .v-app-bar {
     padding: 0 8px;
-  }
-  
-  .v-container {
-    padding: 12px;
   }
 }
 </style>
