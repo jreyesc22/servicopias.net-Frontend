@@ -27,6 +27,56 @@
       </v-expand-transition>
     </v-card>
 
+    <!-- Servidor de impresión (producción vía env) -->
+    <v-card elevation="2" class="config-card">
+      <v-card-title class="section-title d-flex justify-space-between">
+        <div>
+          <v-icon class="mr-2" color="primary">mdi-printer</v-icon>
+          Servidor de impresión
+        </div>
+        <div class="d-flex ga-2">
+          <v-btn
+            color="primary"
+            variant="elevated"
+            size="large"
+            @click="toggleImpresora"
+          >
+            <v-icon start>{{ showImpresora ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+            {{ showImpresora ? 'Ocultar' : 'Mostrar' }} Impresora
+          </v-btn>
+
+          <v-btn
+            color="primary"
+            variant="elevated"
+            size="large"
+            :loading="probandoImpresora"
+            :disabled="probandoImpresora || !showImpresora"
+            @click="probarConexionImpresora"
+          >
+            <v-icon start>mdi-lan-connect</v-icon>
+            Probar conexión
+          </v-btn>
+        </div>
+      </v-card-title>
+
+      <v-expand-transition>
+        <div v-if="showImpresora">
+          <v-card-text>
+            <v-text-field
+              label="URL del servidor de impresión"
+              :model-value="printerServerUrl"
+              readonly
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-link-variant"
+              hint="Configurado desde VUE_APP_PRINTER_SERVER_URL (solo producción)"
+              persistent-hint
+            />
+          </v-card-text>
+        </div>
+      </v-expand-transition>
+    </v-card>
+
     <!-- Snackbar para notificaciones -->
     <v-snackbar 
       v-model="snackbar.show" 
@@ -52,11 +102,20 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import GestionEmpleados from '@/components/configuracion/empleados/GestionEmpleados.vue'
+import { printerService } from '@/services/printer.service.js'
 
 // Estado reactivo
 const showEmpleados = ref(false)
+
+const showImpresora = ref(false)
+
+const probandoImpresora = ref(false)
+
+const printerServerUrl = computed(() => {
+  return process.env.VUE_APP_PRINTER_SERVER_URL || 'http://192.168.1.15:3005'
+})
 
 // Snackbar
 const snackbar = reactive({
@@ -70,10 +129,34 @@ const toggleEmpleados = () => {
   showEmpleados.value = !showEmpleados.value
 }
 
+const toggleImpresora = () => {
+  showImpresora.value = !showImpresora.value
+}
+
 const mostrarNotificacion = (mensaje, color = 'success') => {
   snackbar.message = mensaje
   snackbar.color = color
   snackbar.show = true
+}
+
+const probarConexionImpresora = async () => {
+  if (probandoImpresora.value) return
+
+  probandoImpresora.value = true
+  try {
+    printerService.configurar({ servidorUrl: printerServerUrl.value })
+    const ok = await printerService.validarConectividad()
+
+    if (ok) {
+      mostrarNotificacion(`Conexión exitosa al servidor de impresión: ${printerServerUrl.value}`, 'success')
+    } else {
+      mostrarNotificacion(`No se pudo conectar al servidor de impresión: ${printerServerUrl.value}`, 'error')
+    }
+  } catch (error) {
+    mostrarNotificacion(`Error probando conexión: ${error?.message || 'desconocido'}`, 'error')
+  } finally {
+    probandoImpresora.value = false
+  }
 }
 </script>
 

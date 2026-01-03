@@ -32,7 +32,7 @@ export default {
     },
     servidorImpresion: {
       type: String,
-      default: 'http://192.168.1.15:3005'
+      default: process.env.VUE_APP_PRINTER_SERVER_URL || 'http://192.168.1.15:3005'
     },
     abrirCajon: {
       type: Boolean,

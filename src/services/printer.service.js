@@ -9,7 +9,7 @@ import { finalizarImpresion } from '../utils/printerCommands';
  * Configuración por defecto del servicio de impresión
  */
 const CONFIG_DEFAULT = {
-  servidorUrl: 'http://192.168.1.15:3005',
+  servidorUrl: process.env.VUE_APP_PRINTER_SERVER_URL || 'http://192.168.1.15:3005',
   timeout: 5000,
   reintentos: 2,
   debug: process.env.NODE_ENV === 'development'
