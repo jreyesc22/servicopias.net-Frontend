@@ -25,6 +25,7 @@ export function useDashboardData() {
   const kpis = ref({
     ventasTotales: 0,
     ticketPromedio: 0,
+    
     totalOrdenes: 0,
     totalUnidades: 0
   })
@@ -131,7 +132,14 @@ export function useDashboardData() {
           borderColor: '#1976d2',
           backgroundColor: 'rgba(25, 118, 210, 0.1)',
           fill: true,
-          tension: 0.4
+          // Configuración elástica
+        tension: 0, // 0.4 es el balance ideal entre curva y precisión
+        pointRadius: 2,
+        pointHoverRadius: 7,
+        borderWidth: 2,
+        pointBackgroundColor: '#1976d2'
+       
+
         }]
       }
 
@@ -141,7 +149,7 @@ export function useDashboardData() {
         datasets: [{
           label: 'Órdenes',
           data: resumen.ventasPorDia.map(d => parseInt(d.ordenes) || 0),
-          backgroundColor: '#43a047'
+          backgroundColor: ['#ff6384', '#ff9f40', '#ffcd56', '#4bc0c0', '#36a2eb', '#9966ff', '#c9cbcf']
         }]
       }
     }

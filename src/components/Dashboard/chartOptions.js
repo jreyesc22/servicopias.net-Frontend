@@ -7,6 +7,7 @@ const formatearMoneda = (valor) => {
   })
 }
 
+
 export const lineChartOptions = {
   responsive: true,
   maintainAspectRatio: true,
@@ -31,11 +32,18 @@ export const lineChartOptions = {
       }
     }
   },
-  animation: {
-    duration: 750,
-    easing: 'easeInOutQuart'
+  // ✅ Animación correcta de la tensión (curvatura de la línea)
+  animations: {
+    tension: {
+      duration: 1000,
+      easing: 'linear',
+      from: 1,   // muy curvada
+      to: 0,     // recta
+      loop: true // en bucle
+    }
   }
-}
+};
+
 
 export const barChartOptions = {
   responsive: true,
@@ -56,7 +64,7 @@ export const barChartOptions = {
     }
   },
   animation: {
-    duration: 750,
+    duration: 1000,
     easing: 'easeOutBounce'
   }
 }
@@ -110,8 +118,13 @@ export const tendenciaChartOptions = {
       }
     }
   },
-  animation: {
-    duration: 750,
-    easing: 'easeInOutQuart'
+ animations: {
+    tension: {
+      duration: 1000,
+      easing: 'linear',
+      from: 1,   // muy curvada
+      to: 0,     // recta
+      loop: true // en bucle
+    }
   }
 }
