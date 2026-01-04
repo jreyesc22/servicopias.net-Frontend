@@ -42,7 +42,7 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = AuthService.isAuthenticated()
 
   if (requiresAuth && !isAuthenticated) {
-    next('/login')
+    next('/auth/login')
     } else if (to.path === '/auth/login' && isAuthenticated) {
     next('/dashboard')
   } else {
