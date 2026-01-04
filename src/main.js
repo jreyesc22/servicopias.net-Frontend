@@ -10,6 +10,9 @@ import '@mdi/font/css/materialdesignicons.css'
 // Sistema de diseño global
 import './styles/design-system.css'
 
+// PWA: registra el Service Worker en producción
+import './registerServiceWorker'
+
 // Suprimir errores de ResizeObserver en desarrollo
 const resizeObserverErr = window.console.error
 window.console.error = (...args) => {
