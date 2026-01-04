@@ -36,12 +36,14 @@
               <v-text-field
                 v-model="password"
                 label="Contraseña"
-                type="password"
+                :type="showPassword ? 'text' : 'password'"
                 variant="solo"
                 flat
                 class="custom-input input-focus"
                 hide-details="auto"
                 prepend-inner-icon="mdi-lock"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
                 :rules="[v => !!v || 'La contraseña es requerida']"
                 required
               ></v-text-field>
@@ -77,6 +79,7 @@ export default {
     return {
       username: '',
       password: '',
+      showPassword: false,
       loading: false,
       error: ''
     }
