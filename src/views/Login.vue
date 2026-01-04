@@ -48,7 +48,7 @@
               <v-btn 
                 block
                 size="large"
-                class="login-btn btn-smooth mt-6"
+                class="login-btn btn-smooth text-white mt-6"
                 type="submit"
                 :loading="loading"
                 :disabled="loading"
@@ -157,7 +157,6 @@ export default {
 
 .login-btn {
   background: var(--gradient-primary);
-  color: #fff !important;
   font-weight: 700;
   letter-spacing: 1px;
   border-radius: var(--border-radius-lg);
