@@ -34,7 +34,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(process.env.BASE_URL),
   routes
 })
 router.beforeEach((to, from, next) => {
@@ -43,7 +43,7 @@ router.beforeEach((to, from, next) => {
 
   if (requiresAuth && !isAuthenticated) {
     next('/auth/login')
-  } else if (to.path === '/auth/login' && isAuthenticated) {
+  } else if (to.path === '/login' && isAuthenticated) {
     next('/dashboard')
   } else {
     next()
