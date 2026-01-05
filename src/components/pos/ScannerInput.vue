@@ -133,7 +133,7 @@ const onInputChange = (valor) => {
       if (valor && valor.length > 3) { // Mínimo 4 caracteres para considerar válido
         procesarCodigo();
       }
-    }, 80);
+    }, 3000);
   } else {
     bufferCodigo = '';
   }
