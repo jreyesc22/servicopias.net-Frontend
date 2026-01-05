@@ -38,9 +38,12 @@ class AbonosService {
    * @param {string} abono.observacion - Observación (opcional)
    * @returns {Promise<Object>} Respuesta con datos del abono y estado actualizado de la orden
    */
-  async registrarAbono(abono) {
+  async registrarAbono(abono, config = {}) {
     try {
-      const { data } = await axios.post(`${API_URL}/abonos/create`, abono);
+      const { data } = await axios.post(`${API_URL}/abonos/create`, abono, {
+        timeout: 15000,
+        ...config
+      });
       return data;
     } catch (error) {
       throw normalizeAxiosError(error, 'Error al registrar el abono');
@@ -53,7 +56,7 @@ class AbonosService {
    */
   async getAll() {
     try {
-      const { data } = await axios.get(`${API_URL}/abonos/all`);
+      const { data } = await axios.get(`${API_URL}/abonos/all`, { timeout: 15000 });
       return data;
     } catch (error) {
       throw normalizeAxiosError(error, 'Error al obtener abonos');
@@ -67,7 +70,7 @@ class AbonosService {
    */
   async getByOrden(ordenId) {
     try {
-      const { data } = await axios.get(`${API_URL}/abonos/orden/${ordenId}`);
+      const { data } = await axios.get(`${API_URL}/abonos/orden/${ordenId}`, { timeout: 15000 });
       return data;
     } catch (error) {
       throw normalizeAxiosError(error, 'Error al obtener abonos de la orden');

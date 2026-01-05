@@ -1,6 +1,6 @@
 <template>
-  <v-dialog v-model="dialogVisible" max-width="700" persistent>
-    <v-card v-if="orden">
+  <v-container class="py-2" max-width="800">
+    <v-card v-if="orden" class="pa-0" elevation="2" rounded="lg">
       <!-- Header -->
       <v-card-title class="bg-success text-white d-flex align-center">
         <v-icon class="mr-2">mdi-cash-register</v-icon>
@@ -164,19 +164,31 @@
         </v-row>
       </v-card-text>
     </v-card>
-  </v-dialog>
+  </v-container>
+
+  <!-- Snackbar para notificaciones (consistente con caja/AbonarOrden.vue) -->
+  <v-snackbar
+    v-model="mostrarNotificacion"
+    :color="notificacion.color"
+    :timeout="3000"
+    location="top"
+    rounded="pill"
+  >
+    {{ notificacion.texto }}
+    <template #actions>
+      <v-btn variant="text" size="small" @click="mostrarNotificacion = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import abonosService from '@/services/abonos.service';
 import { printerService } from '@/services/printer.service';
 
 const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
   orden: {
     type: Object,
     required: false,
@@ -197,18 +209,19 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:modelValue', 'abono-registrado', 'cancelar']);
-
-// Estado del dialog
-const dialogVisible = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-});
+const emit = defineEmits(['abono-registrado', 'cancelar']);
 
 // Estado del formulario
 const form = ref(null);
 const formValido = ref(false);
 const cargando = ref(false);
+
+// Notificaciones internas
+const mostrarNotificacion = ref(false);
+const notificacion = ref({
+  color: 'info',
+  texto: ''
+});
 
 // Datos de pago
 const tipoPago = ref(props.efectivoId);
@@ -216,6 +229,8 @@ const monto = ref(null);
 const efectivoRecibido = ref(null);
 const numeroRecibo = ref('');
 const observacion = ref('');
+
+let abonoAbortController = null;
 
 /**
  * Normalización de IDs (Vuetify puede devolver strings)
@@ -337,6 +352,11 @@ const formatMoney = (valor) => {
   return isNaN(numero) ? '0.00' : numero.toFixed(2);
 };
 
+const mostrarMensaje = (color, texto) => {
+  notificacion.value = { color, texto };
+  mostrarNotificacion.value = true;
+};
+
 
 
 /**
@@ -344,21 +364,48 @@ const formatMoney = (valor) => {
  */
 const registrarAbono = async () => {
   if (!props.orden) {
-    alert('Error: No hay orden para procesar');
+    mostrarMensaje('error', 'Error: No hay orden para procesar');
     return;
   }
 
-  if (!formularioCompleto.value) {
-    return;
+  // Validar con Vuetify (consistente con AbonarOrden.vue)
+  try {
+    const res = await form.value?.validate?.();
+    const valid = typeof res === 'object' ? (res?.valid ?? false) : !!res;
+    if (!valid) {
+      mostrarMensaje('warning', 'Complete los campos requeridos');
+      return;
+    }
+  } catch (_) {
+    // Si por alguna razón validate falla, nos apoyamos en el computed
+    if (!formularioCompleto.value) {
+      mostrarMensaje('warning', 'Complete los campos requeridos');
+      return;
+    }
   }
-  
+
   if (requiereNumeroRecibo.value && !numeroRecibo.value?.trim()) {
+    mostrarMensaje('warning', `Número de ${tipoComprobanteTexto.value} es requerido`);
     return;
   }
 
   cargando.value = true;
 
   try {
+    // Cancelar cualquier intento previo
+    if (abonoAbortController) {
+      try { abonoAbortController.abort(); } catch (_) {}
+    }
+    abonoAbortController = new AbortController();
+
+    console.info('[POS][AbonarOrdenPOS] ▶ Registrando abono', {
+      ordenId: props.orden.id,
+      tipoPagoId: tipoPagoIdNum.value,
+      monto: montoNum.value,
+      esEfectivo: esEfectivo.value,
+      requiereNumeroRecibo: requiereNumeroRecibo.value
+    });
+
     const payload = {
       ordenId: props.orden.id,
       tipoPagoId: tipoPagoIdNum.value,
@@ -368,16 +415,33 @@ const registrarAbono = async () => {
       observacion: observacion.value?.trim() || null
     };
 
-    const data = await abonosService.registrarAbono(payload);
+    const data = await abonosService.registrarAbono(payload, { signal: abonoAbortController.signal });
+
+    console.info('[POS][AbonarOrdenPOS] ✅ Abono registrado (API OK)', {
+      ordenId: props.orden.id,
+      estadoPago: data?.estado_pago,
+      abonado: data?.abonado,
+      saldoPendiente: data?.saldo_pendiente
+    });
     
+    let printerWarning = null;
+
     // Abrir cajón de dinero si es efectivo
     if (esEfectivo.value) {
       try {
-        const resultadoCajon = await printerService.abrirCajon();
-        if (resultadoCajon && resultadoCajon.success === false) {
-          console.warn('No se pudo abrir el cajón:', resultadoCajon.error || 'Error desconocido');
+        const conectado = await printerService.validarConectividad();
+        if (!conectado) {
+          printerWarning = 'Servidor de impresión no disponible; no se pudo abrir el cajón.';
+          console.warn('[POS][AbonarOrdenPOS] Servidor de impresión no disponible; se omite abrir cajón');
+        } else {
+          const resultadoCajon = await printerService.abrirCajon();
+          if (resultadoCajon && resultadoCajon.success === false) {
+            printerWarning = `No se pudo abrir el cajón: ${resultadoCajon.error || 'Error desconocido'}`;
+            console.warn('No se pudo abrir el cajón:', resultadoCajon.error || 'Error desconocido');
+          }
         }
       } catch (errorCajon) {
+        printerWarning = `No se pudo abrir el cajón: ${errorCajon?.message || 'Error desconocido'}`;
         console.warn('No se pudo abrir el cajón:', errorCajon.message);
       }
     }
@@ -398,21 +462,28 @@ const registrarAbono = async () => {
       abonado: data.abonado,
       saldoPendiente: data.saldo_pendiente,
       ordenCompletada: data.estado_pago === 'pagado',
-      numeroRecibo: numeroRecibo.value || null
+      numeroRecibo: numeroRecibo.value || null,
+      printerWarning
     });
 
-    // Cerrar dialog
-    dialogVisible.value = false;
-    
-    // Resetear después de cerrar
+    console.info('[POS][AbonarOrdenPOS] 📤 Evento abono-registrado emitido');
+
+    // Reset local (el padre controla el cambio de vista)
     await nextTick();
     resetForm();
 
   } catch (error) {
     console.error('Error al registrar abono:', error);
-    alert(error?.message || 'Error al registrar abono');
+
+    // Si fue abort explícito (cambio de pestaña/cierre), no mostrar error agresivo
+    if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED' || error?.message === 'canceled') {
+      console.info('[POS][AbonarOrdenPOS] Solicitud abortada; se omite notificación de error');
+    } else {
+      mostrarMensaje('error', error?.message || 'Error al registrar abono');
+    }
   } finally {
     cargando.value = false;
+    abonoAbortController = null;
   }
 };
 
@@ -420,15 +491,9 @@ const registrarAbono = async () => {
  * Cancelar y eliminar orden
  */
 const cancelar = async () => {
-  // Preguntar confirmación
-  if (!confirm('¿Cancelar el pago? La orden será eliminada.')) {
-    return;
-  }
-
+  // Mantener confirmación (el flujo elimina la orden en el padre)
+  if (!confirm('¿Cancelar el pago? La orden será eliminada.')) return;
   emit('cancelar');
-  dialogVisible.value = false;
-  
-  // Resetear al cerrar
   await nextTick();
   resetForm();
 };
@@ -443,6 +508,10 @@ const resetForm = () => {
   observacion.value = '';
   efectivoRecibido.value = null;
   formValido.value = false;
+
+  if (form.value?.resetValidation) {
+    form.value.resetValidation();
+  }
 };
 
 /**
@@ -464,20 +533,8 @@ const inicializarFormulario = () => {
  * Watch: Inicializar cuando se abre el modal
  */
 watch(
-  () => props.modelValue,
-  async (visible) => {
-    if (!visible) return;
-    if (!props.orden) return;
-    await nextTick();
-    inicializarFormulario();
-  },
-  { immediate: true }
-);
-
-watch(
   () => props.orden?.id,
   async (ordenId) => {
-    if (!props.modelValue) return;
     if (!ordenId) return;
     await nextTick();
     inicializarFormulario();
@@ -496,11 +553,29 @@ watch(
   }
 );
 
-onMounted(async () => {
-  // Respaldo: si el componente se monta ya visible, los watch sin immediate no correrían.
-  if (props.modelValue && props.orden) {
+watch(
+  () => props.efectivoId,
+  async (nuevoEfectivoId) => {
+    const idNum = Number(nuevoEfectivoId);
+    if (!Number.isFinite(idNum)) return;
+    // Si el modal está abierto y aún estamos en valor por defecto, sincronizar
+    tipoPago.value = idNum;
     await nextTick();
     inicializarFormulario();
+  }
+);
+
+onMounted(async () => {
+  if (props.orden) {
+    await nextTick();
+    inicializarFormulario();
+  }
+});
+
+onBeforeUnmount(() => {
+  if (abonoAbortController) {
+    try { abonoAbortController.abort(); } catch (_) {}
+    abonoAbortController = null;
   }
 });
 </script>

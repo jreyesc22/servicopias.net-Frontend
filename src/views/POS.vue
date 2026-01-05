@@ -40,10 +40,10 @@
       </v-col>
     </v-row>
 
-    <v-row>
+    <!-- Vista principal (nueva orden) -->
+    <v-row v-if="vistaActual === 'venta'">
       <!-- Columna izquierda: Scanner y productos populares -->
       <v-col cols="12" md="7">
-        <!-- Scanner de código de barras -->
         <ScannerInput
           ref="scannerRef"
           :procesando="cargando"
@@ -52,7 +52,6 @@
           class="mb-4"
         />
 
-        <!-- Productos populares -->
         <ProductosPopulares
           :productos="productosPopulares"
           :cargando="cargandoPopulares"
@@ -68,22 +67,25 @@
           @actualizar-cantidad="actualizarCantidad"
           @eliminar-item="eliminarDelCarrito"
           @vaciar-carrito="vaciarCarrito"
-          @procesar-venta="abrirDialogPago"
+          @procesar-venta="iniciarPago"
         />
       </v-col>
     </v-row>
 
-    <!-- Dialog de pago con abono -->
-    <AbonarOrdenPOS
-      v-if="ordenTemporal"
-      v-model="dialogAbono"
-      :orden="ordenTemporal"
-      :empleado-id="empleadoId"
-      :tipos-de-pago="tiposDePago"
-      :efectivo-id="efectivoId"
-      @abono-registrado="manejarAbonoRegistrado"
-      @cancelar="cancelarPago"
-    />
+    <!-- Vista de pago (sin modal) -->
+    <v-row v-else-if="vistaActual === 'pago'">
+      <v-col cols="12" md="8" class="mx-auto">
+        <AbonarOrdenPOS
+          v-if="ordenTemporal"
+          :orden="ordenTemporal"
+          :empleado-id="empleadoId"
+          :tipos-de-pago="tiposDePago"
+          :efectivo-id="efectivoId"
+          @abono-registrado="manejarAbonoRegistrado"
+          @cancelar="cancelarPago"
+        />
+      </v-col>
+    </v-row>
 
     <!-- Snackbar de notificaciones -->
     <v-snackbar
@@ -103,54 +105,12 @@
       </template>
     </v-snackbar>
 
-    <!-- Dialog de éxito -->
-    <v-dialog v-model="dialogExito" max-width="500" persistent>
-      <v-card>
-        <v-card-text class="text-center pa-8">
-          <v-icon size="80" color="success" class="mb-4">
-            mdi-check-circle
-          </v-icon>
-          <h2 class="text-h5 mb-2">¡Venta Exitosa!</h2>
-          <p class="text-subtitle-1 text-grey-darken-1">
-            La venta se ha procesado correctamente
-          </p>
-          <v-divider class="my-4" />
-          <div class="text-left">
-            <p class="mb-1"><strong>Total:</strong> Q {{ formatMoney(ultimaVenta.total) }}</p>
-            <p class="mb-1"><strong>Orden #:</strong> {{ ultimaVenta.ordenId }}</p>
-            <p v-if="ultimaVenta.efectivoRecibido" class="mb-1">
-              <strong>Efectivo recibido:</strong> Q {{ formatMoney(ultimaVenta.efectivoRecibido) }}
-            </p>
-            <p v-if="ultimaVenta.cambio > 0" class="mb-1 text-success">
-              <strong>Cambio:</strong> Q {{ formatMoney(ultimaVenta.cambio) }}
-            </p>
-          </div>
-        </v-card-text>
-        <v-card-actions class="justify-center pb-4">
-          <v-btn
-            color="primary"
-            variant="outlined"
-            prepend-icon="mdi-printer"
-            @click="imprimirTicket"
-          >
-            Imprimir Ticket
-          </v-btn>
-          <v-btn
-            color="success"
-            variant="elevated"
-            prepend-icon="mdi-cart-plus"
-            @click="nuevaVenta"
-          >
-            Nueva Venta
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- (Se elimina el modal de éxito: al terminar el pago retorna a nueva venta) -->
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { usePOS } from '@/components/composables/usePOS';
 import POSService from '@/services/pos.service';
 import ordenesService from '@/services/ordenes.service';
@@ -184,8 +144,7 @@ const {
 const scannerRef = ref(null);
 
 // Estado local
-const dialogAbono = ref(false);
-const dialogExito = ref(false);
+const vistaActual = ref('venta'); // 'venta' | 'pago'
 const productosPopulares = ref([]);
 const cargandoPopulares = ref(false);
 
@@ -315,7 +274,7 @@ const agregarProductoPopular = (producto) => {
 /**
  * Abrir dialog de pago (ahora crea orden primero)
  */
-const abrirDialogPago = async () => {
+const iniciarPago = async () => {
   if (carrito.value.length === 0) {
     mostrarNotificacion('El carrito está vacío', 'warning', 'mdi-alert');
     return;
@@ -341,8 +300,8 @@ const abrirDialogPago = async () => {
 
       console.log('✅ Orden creada:', ordenTemporal.value.id, 'Total:', ordenTemporal.value.total);
 
-      // Paso 2: Abrir dialog para abonar
-      dialogAbono.value = true;
+      // Paso 2: Ir a vista de pago (sin modal)
+      vistaActual.value = 'pago';
     } else {
       mostrarNotificacion(resultado.message, 'error', 'mdi-alert-circle');
     }
@@ -355,31 +314,61 @@ const abrirDialogPago = async () => {
 /**
  * Manejar abono registrado (después de crear orden)
  */
-const manejarAbonoRegistrado = (datosAbono) => {
-  dialogAbono.value = false;
+const manejarAbonoRegistrado = async (datosAbono) => {
+  try {
+    console.info('[POS] ✅ Abono registrado, iniciando cierre de modal de pago', {
+      ordenId: ordenTemporal.value?.id,
+      total: ordenTemporal.value?.total,
+      tipoPago: datosAbono?.tipoPago,
+      monto: datosAbono?.monto,
+      ordenCompletada: datosAbono?.ordenCompletada
+    });
 
-  // Actualizar última venta
-  ultimaVenta.value = {
-    total: ordenTemporal.value.total,
-    ordenId: ordenTemporal.value.id,
-    cambio: datosAbono.cambio,
-    efectivoRecibido: datosAbono.efectivoRecibido,
-    tipoPago: datosAbono.tipoPago,
-    ordenCompletada: datosAbono.ordenCompletada,
-    orden: { ...ordenTemporal.value } // Guardar copia completa para impresión
-  };
+    // Mantener el pago visible hasta que termine el procesamiento.
+    // Luego retornamos a la vista de nueva venta.
 
-  // Limpiar carrito y mostrar éxito
-  vaciarCarrito();
-  dialogExito.value = true;
-  
-  // Reiniciar estadísticas del scanner
-  if (scannerRef.value) {
-    scannerRef.value.reiniciarEstadisticas();
+    // Actualizar última venta
+    ultimaVenta.value = {
+      total: ordenTemporal.value?.total || 0,
+      ordenId: ordenTemporal.value?.id || null,
+      cambio: datosAbono?.cambio,
+      efectivoRecibido: datosAbono?.efectivoRecibido,
+      tipoPago: datosAbono?.tipoPago,
+      ordenCompletada: datosAbono?.ordenCompletada,
+      orden: ordenTemporal.value ? { ...ordenTemporal.value } : null
+    };
+
+    // Limpiar carrito y retornar a nueva venta
+    vaciarCarrito();
+
+    mostrarNotificacion(
+      `Venta procesada. Orden #${ultimaVenta.value.ordenId} - Total Q ${formatMoney(ultimaVenta.value.total)}`,
+      'success',
+      'mdi-check'
+    );
+
+    if (datosAbono?.printerWarning) {
+      mostrarNotificacion(datosAbono.printerWarning, 'warning', 'mdi-printer-alert');
+    }
+
+    // Reiniciar estadísticas del scanner
+    if (scannerRef.value?.reiniciarEstadisticas) {
+      scannerRef.value.reiniciarEstadisticas();
+    }
+
+    // Limpiar orden temporal
+    ordenTemporal.value = null;
+
+    // Volver a la vista principal
+    vistaActual.value = 'venta';
+    await nextTick();
+    if (scannerRef.value) {
+      scannerRef.value.enfocarInput?.();
+    }
+  } catch (error) {
+    console.error('[POS] Error en manejarAbonoRegistrado:', error);
+    mostrarNotificacion(error?.message || 'Error al finalizar el cobro', 'error', 'mdi-alert');
   }
-
-  // Limpiar orden temporal
-  ordenTemporal.value = null;
 };
 
 /**
@@ -390,7 +379,7 @@ const manejarAbonoRegistrado = (datosAbono) => {
  */
 const cancelarPago = async () => {
   if (!ordenTemporal.value?.id) {
-    dialogAbono.value = false;
+    vistaActual.value = 'venta';
     return;
   }
 
@@ -404,8 +393,8 @@ const cancelarPago = async () => {
     console.error('Error al eliminar orden:', error);
     mostrarNotificacion('Error al eliminar orden', 'error', 'mdi-alert-circle');
   } finally {
-    dialogAbono.value = false;
     ordenTemporal.value = null;
+    vistaActual.value = 'venta';
   }
 };
 
@@ -413,7 +402,6 @@ const cancelarPago = async () => {
  * Nueva venta
  */
 const nuevaVenta = () => {
-  dialogExito.value = false;
   vaciarCarrito();
   if (scannerRef.value) {
     scannerRef.value.enfocarInput();
