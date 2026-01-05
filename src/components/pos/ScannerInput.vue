@@ -111,56 +111,74 @@ const errores = ref(0);
 let bufferTiempo = Date.now();
 let bufferCodigo = '';
 let timeoutScanner = null;
+let timeoutAutoHide = null;
+let timeoutAutoClear = null;
 
 /**
  * Detectar si es un scanner (múltiples caracteres en muy poco tiempo)
  */
 const onInputChange = (valor) => {
-  const ahora = Date.now();
-  const diferenciaTiempo = ahora - bufferTiempo;
+  try {
+    const ahora = Date.now();
+    const diferenciaTiempo = ahora - bufferTiempo;
 
-  // Si hay menos de 50ms entre caracteres, probablemente es un scanner
-  if (diferenciaTiempo < 50 && valor.length > bufferCodigo.length) {
-    bufferCodigo = valor;
-    
-    // Limpiar timeout anterior
-    if (timeoutScanner) {
-      clearTimeout(timeoutScanner);
-    }
-    
-    // Procesar automáticamente después de 30ms sin nuevos caracteres (más rápido)
-    timeoutScanner = setTimeout(() => {
-      if (valor && valor.length > 3) { // Mínimo 4 caracteres para considerar válido
-        procesarCodigo();
+    // Si hay menos de 50ms entre caracteres, probablemente es un scanner
+    if (diferenciaTiempo < 50 && valor.length > bufferCodigo.length) {
+      bufferCodigo = valor;
+
+      // Limpiar timeout anterior
+      if (timeoutScanner) {
+        clearTimeout(timeoutScanner);
       }
-    }, 3000);
-  } else {
-    bufferCodigo = '';
-  }
 
-  bufferTiempo = ahora;
+      timeoutScanner = setTimeout(() => {
+        if (valor && valor.length > 3) {
+          Promise.resolve(procesarCodigo()).catch((err) => {
+            console.error('Error al procesar código (scanner):', err);
+          });
+        }
+      }, 3000);
+    } else {
+      bufferCodigo = '';
+    }
+
+    bufferTiempo = ahora;
+  } catch (err) {
+    console.error('Error en onInputChange:', err);
+  }
 };
 
 /**
  * Procesar código escaneado o ingresado
  */
 const procesarCodigo = async () => {
-  if (!codigoActual.value || codigoActual.value.trim() === '') {
-    return;
-  }
+  try {
+    if (!codigoActual.value || codigoActual.value.trim() === '') {
+      return;
+    }
 
-  const codigo = codigoActual.value.trim();
-  totalEscaneados.value++;
+    const codigo = codigoActual.value.trim();
+    totalEscaneados.value++;
 
-  // Emitir evento con el código
-  emit('codigo-escaneado', codigo);
+    // Emitir evento con el código
+    emit('codigo-escaneado', codigo);
 
-  // Limpiar input si autoLimpiar está activo
-  if (props.autoLimpiar) {
-    setTimeout(() => {
-      codigoActual.value = '';
-      enfocarInput();
-    }, props.tiempoAutoLimpiar);
+    // Limpiar input si autoLimpiar está activo
+    if (props.autoLimpiar) {
+      if (timeoutAutoClear) {
+        clearTimeout(timeoutAutoClear);
+      }
+      timeoutAutoClear = setTimeout(() => {
+        codigoActual.value = '';
+        Promise.resolve(enfocarInput()).catch(() => {});
+      }, props.tiempoAutoLimpiar);
+    }
+  } catch (err) {
+    console.error('Error al procesar código:', err);
+    actualizarResultado({
+      success: false,
+      message: err?.message || 'Error al procesar el código'
+    });
   }
 };
 
@@ -177,7 +195,10 @@ const actualizarResultado = (resultado) => {
   }
 
   // Auto-ocultar después de 3 segundos
-  setTimeout(() => {
+  if (timeoutAutoHide) {
+    clearTimeout(timeoutAutoHide);
+  }
+  timeoutAutoHide = setTimeout(() => {
     if (ultimoResultado.value === resultado) {
       ultimoResultado.value = null;
     }
@@ -219,6 +240,19 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('focus', handleWindowFocus);
+
+  if (timeoutScanner) {
+    clearTimeout(timeoutScanner);
+    timeoutScanner = null;
+  }
+  if (timeoutAutoHide) {
+    clearTimeout(timeoutAutoHide);
+    timeoutAutoHide = null;
+  }
+  if (timeoutAutoClear) {
+    clearTimeout(timeoutAutoClear);
+    timeoutAutoClear = null;
+  }
 });
 
 const handleWindowFocus = () => {

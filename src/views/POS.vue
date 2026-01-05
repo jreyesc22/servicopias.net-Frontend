@@ -240,18 +240,30 @@ const snackbar = ref({
  * Buscar producto por código de barras
  */
 const buscarProductoPorCodigo = async (codigo) => {
-  const resultado = await buscarPorCodigo(codigo);
-  
-  // Actualizar estadísticas
-  estadisticas.value.escaneados++;
-  if (resultado.success) {
-    estadisticas.value.exitosos++;
-  } else {
+  try {
+    const resultado = await buscarPorCodigo(codigo);
+
+    // Actualizar estadísticas
+    estadisticas.value.escaneados++;
+    if (resultado.success) {
+      estadisticas.value.exitosos++;
+    } else {
+      estadisticas.value.errores++;
+    }
+
+    if (scannerRef.value?.actualizarResultado) {
+      scannerRef.value.actualizarResultado(resultado);
+    }
+  } catch (error) {
+    console.error('Error en buscarProductoPorCodigo:', error);
+    estadisticas.value.escaneados++;
     estadisticas.value.errores++;
-  }
-  
-  if (scannerRef.value) {
-    scannerRef.value.actualizarResultado(resultado);
+    if (scannerRef.value?.actualizarResultado) {
+      scannerRef.value.actualizarResultado({
+        success: false,
+        message: error?.message || 'Error al buscar producto'
+      });
+    }
   }
 };
 
@@ -315,23 +327,28 @@ const abrirDialogPago = async () => {
     return;
   }
 
-  // Paso 1: Crear orden sin pago
-  const resultado = await crearOrdenPOS();
-  
-  if (resultado.success) {
-    // Guardar orden temporal con saldo_pendiente
-    ordenTemporal.value = {
-      ...resultado.orden,
-      saldo_pendiente: resultado.orden.total,
-      abonado: 0
-    };
-    
-    console.log('✅ Orden creada:', ordenTemporal.value.id, 'Total:', ordenTemporal.value.total);
-    
-    // Paso 2: Abrir dialog para abonar
-    dialogAbono.value = true;
-  } else {
-    mostrarNotificacion(resultado.message, 'error', 'mdi-alert-circle');
+  try {
+    // Paso 1: Crear orden sin pago
+    const resultado = await crearOrdenPOS();
+
+    if (resultado.success) {
+      // Guardar orden temporal con saldo_pendiente
+      ordenTemporal.value = {
+        ...resultado.orden,
+        saldo_pendiente: resultado.orden.total,
+        abonado: 0
+      };
+
+      console.log('✅ Orden creada:', ordenTemporal.value.id, 'Total:', ordenTemporal.value.total);
+
+      // Paso 2: Abrir dialog para abonar
+      dialogAbono.value = true;
+    } else {
+      mostrarNotificacion(resultado.message, 'error', 'mdi-alert-circle');
+    }
+  } catch (error) {
+    console.error('Error al abrir dialog de pago:', error);
+    mostrarNotificacion(error?.message || 'Error al procesar la venta', 'error', 'mdi-alert-circle');
   }
 };
 
@@ -434,8 +451,11 @@ const imprimirTicket = async () => {
       ESC_POS.CUT_FULL;
 
     // Enviar a imprimir
-    await printerService.imprimirRaw(ticketRaw);
-    
+    const resultado = await printerService.imprimirRaw(ticketRaw);
+    if (resultado && resultado.success === false) {
+      throw new Error(resultado.error || 'Error al imprimir');
+    }
+
     mostrarNotificacion('Ticket impreso correctamente', 'success', 'mdi-check');
   } catch (error) {
     console.error('Error al imprimir:', error);

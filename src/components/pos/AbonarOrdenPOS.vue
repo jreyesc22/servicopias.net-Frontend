@@ -373,7 +373,10 @@ const registrarAbono = async () => {
     // Abrir cajón de dinero si es efectivo
     if (esEfectivo.value) {
       try {
-        await printerService.abrirCajon();
+        const resultadoCajon = await printerService.abrirCajon();
+        if (resultadoCajon && resultadoCajon.success === false) {
+          console.warn('No se pudo abrir el cajón:', resultadoCajon.error || 'Error desconocido');
+        }
       } catch (errorCajon) {
         console.warn('No se pudo abrir el cajón:', errorCajon.message);
       }
@@ -407,7 +410,7 @@ const registrarAbono = async () => {
 
   } catch (error) {
     console.error('Error al registrar abono:', error);
-    alert(error.message || 'Error al registrar abono');
+    alert(error?.message || 'Error al registrar abono');
   } finally {
     cargando.value = false;
   }

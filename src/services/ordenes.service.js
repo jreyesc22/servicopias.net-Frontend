@@ -6,6 +6,25 @@ import axios from 'axios';
 
 const API_URL = process.env.VUE_APP_API_URL;
 
+const getAxiosErrorMessage = (error, fallbackMessage) => {
+  const data = error?.response?.data;
+  return (
+    data?.message ||
+    data?.error ||
+    data?.mensaje ||
+    error?.message ||
+    fallbackMessage
+  );
+};
+
+const normalizeAxiosError = (error, fallbackMessage) => {
+  const message = getAxiosErrorMessage(error, fallbackMessage);
+  if (error && typeof error === 'object') {
+    error.message = message;
+  }
+  return error instanceof Error ? error : new Error(message);
+};
+
 class OrdenesService {
   /**
    * Obtener todas las órdenes con paginación y filtros
@@ -36,8 +55,12 @@ class OrdenesService {
       queryParams.append('limit', params.limit);
     }
     
-    const { data } = await axios.get(`${API_URL}/ordenes/all?${queryParams.toString()}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/all?${queryParams.toString()}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener órdenes');
+    }
   }
 
   /**
@@ -46,8 +69,12 @@ class OrdenesService {
    * @returns {Promise<Object>}
    */
   async getById(id) {
-    const { data } = await axios.get(`${API_URL}/ordenes/${id}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/${id}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener la orden');
+    }
   }
 
   /**
@@ -65,8 +92,12 @@ class OrdenesService {
     if (cliente_nombre) queryParams.append('cliente_nombre', cliente_nombre);
     if (cliente_nit) queryParams.append('cliente_nit', cliente_nit);
     
-    const { data } = await axios.get(`${API_URL}/ordenes/search?${queryParams.toString()}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/search?${queryParams.toString()}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al buscar órdenes por cliente');
+    }
   }
 
   /**
@@ -101,8 +132,12 @@ class OrdenesService {
     if (estado) queryParams.append('estado', estado);
     if (estadoPago) queryParams.append('estadoPago', estadoPago);
     
-    const { data } = await axios.get(`${API_URL}/ordenes/date-range?${queryParams.toString()}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/date-range?${queryParams.toString()}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al buscar órdenes por rango de fechas');
+    }
   }
 
   /**
@@ -116,8 +151,12 @@ class OrdenesService {
     if (!params) params = {};
     const { fechaInicio, fechaFin } = params;
     const queryParams = new URLSearchParams({ fechaInicio, fechaFin }).toString();
-    const { data } = await axios.get(`${API_URL}/ordenes/resumen-date-range?${queryParams.toString()}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/resumen-date-range?${queryParams.toString()}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener resumen de órdenes');
+    }
   }
 
   /**
@@ -126,8 +165,12 @@ class OrdenesService {
    * @returns {Promise<Object>}
    */
   async create(orden) {
-    const { data } = await axios.post(`${API_URL}/ordenes/create`, orden);
-    return data;
+    try {
+      const { data } = await axios.post(`${API_URL}/ordenes/create`, orden);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al crear la orden');
+    }
   }
 
   /**
@@ -137,8 +180,12 @@ class OrdenesService {
    * @returns {Promise<Object>}
    */
   async update(id, updates) {
-    const { data } = await axios.put(`${API_URL}/ordenes/update/${id}`, updates);
-    return data;
+    try {
+      const { data } = await axios.put(`${API_URL}/ordenes/update/${id}`, updates);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al actualizar la orden');
+    }
   }
 
   /**
@@ -147,8 +194,12 @@ class OrdenesService {
    * @returns {Promise<Object>}
    */
   async delete(id) {
-    const { data } = await axios.delete(`${API_URL}/ordenes/delete/${id}`);
-    return data;
+    try {
+      const { data } = await axios.delete(`${API_URL}/ordenes/delete/${id}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al eliminar la orden');
+    }
   }
 
   /**
@@ -157,8 +208,12 @@ class OrdenesService {
    * @returns {Promise<Object>}
    */
   async getPublicStatus(id) {
-    const { data } = await axios.get(`${API_URL}/ordenes/public/${id}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/ordenes/public/${id}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener estado público de la orden');
+    }
   }
 }
 

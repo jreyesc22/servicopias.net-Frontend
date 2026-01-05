@@ -6,6 +6,26 @@ import axios from 'axios';
 
 const API_URL = process.env.VUE_APP_API_URL;
 
+const getAxiosErrorMessage = (error, fallbackMessage) => {
+  const data = error?.response?.data;
+  return (
+    data?.message ||
+    data?.error ||
+    data?.mensaje ||
+    error?.message ||
+    fallbackMessage
+  );
+};
+
+const normalizeAxiosError = (error, fallbackMessage) => {
+  const message = getAxiosErrorMessage(error, fallbackMessage);
+  if (error && typeof error === 'object') {
+    // Mantener el objeto original (incluye response/status) pero con mensaje útil
+    error.message = message;
+  }
+  return error instanceof Error ? error : new Error(message);
+};
+
 class AbonosService {
   /**
    * Registrar un abono a una orden
@@ -19,8 +39,12 @@ class AbonosService {
    * @returns {Promise<Object>} Respuesta con datos del abono y estado actualizado de la orden
    */
   async registrarAbono(abono) {
-    const { data } = await axios.post(`${API_URL}/abonos/create`, abono);
-    return data;
+    try {
+      const { data } = await axios.post(`${API_URL}/abonos/create`, abono);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al registrar el abono');
+    }
   }
 
   /**
@@ -28,8 +52,12 @@ class AbonosService {
    * @returns {Promise<Array>}
    */
   async getAll() {
-    const { data } = await axios.get(`${API_URL}/abonos/all`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/abonos/all`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener abonos');
+    }
   }
 
   /**
@@ -38,8 +66,12 @@ class AbonosService {
    * @returns {Promise<Array>}
    */
   async getByOrden(ordenId) {
-    const { data } = await axios.get(`${API_URL}/abonos/orden/${ordenId}`);
-    return data;
+    try {
+      const { data } = await axios.get(`${API_URL}/abonos/orden/${ordenId}`);
+      return data;
+    } catch (error) {
+      throw normalizeAxiosError(error, 'Error al obtener abonos de la orden');
+    }
   }
 }
 
