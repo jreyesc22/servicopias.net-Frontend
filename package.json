@@ -24,7 +24,7 @@
     "webfontloader": "^1.0.0"
   },
   "devDependencies": {
-    "@vue/cli-plugin-pwa": "^5.0.9",
+    "@vue/cli-plugin-pwa": "^3.12.1",
     "@vue/cli-service": "~5.0.0"
   }
 }
