@@ -72,21 +72,19 @@
               <span v-else class="text-grey">-</span>
             </td>
             <td class="text-center">
-              <v-tooltip text="Ver imagen">
+              <v-tooltip :text="item.imagen_url ? 'Ver imagen' : 'Sin imagen'">
                 <template #activator="{ props }">
-                  <v-btn 
-                    v-if="item.imagen_url" 
-                    icon 
+                  <v-btn
+                    icon
                     size="small"
                     variant="tonal"
                     color="primary"
                     v-bind="props"
-                    :href="item.imagen_url" 
-                    target="_blank"
+                    :disabled="!item.imagen_url"
+                    @click="verImagen(item)"
                   >
-                    <v-icon size="small">mdi-image</v-icon>
+                    <v-icon size="small">{{ item.imagen_url ? 'mdi-image' : 'mdi-image-off' }}</v-icon>
                   </v-btn>
-                  <v-icon v-else color="grey-lighten-1" size="small">mdi-image-off</v-icon>
                 </template>
               </v-tooltip>
             </td>
@@ -156,6 +154,30 @@
       </div>
     </v-card-text>
 
+    <!-- Diálogo previsualización imagen -->
+    <v-dialog v-model="dialogImagen" max-width="720">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2">mdi-image</v-icon>
+          <span class="text-truncate">{{ imagenActualNombre || 'Imagen' }}</span>
+          <v-spacer />
+          <v-btn icon variant="text" @click="dialogImagen = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="pa-4">
+          <v-img
+            v-if="imagenActualUrl"
+            :src="imagenActualUrl"
+            :alt="imagenActualNombre"
+            max-height="520"
+            contain
+          />
+          <div v-else class="text-grey">Sin imagen</div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- Diálogo confirmación eliminar -->
     <v-dialog v-model="dialogEliminar" max-width="400">
       <v-card>
@@ -186,6 +208,9 @@ export default {
       busqueda: '',
       pagina: 1,
       porPagina: 5,
+      dialogImagen: false,
+      imagenActualUrl: null,
+      imagenActualNombre: '',
       dialogEliminar: false,
       productoAEliminar: null
     }
@@ -217,6 +242,12 @@ export default {
     }
   },
   methods: {
+    verImagen(item) {
+      if (!item?.imagen_url) return
+      this.imagenActualUrl = item.imagen_url
+      this.imagenActualNombre = item.nombre || ''
+      this.dialogImagen = true
+    },
     confirmarEliminar(item) {
       this.productoAEliminar = item
       this.dialogEliminar = true
