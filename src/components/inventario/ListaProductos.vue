@@ -98,7 +98,7 @@
                     variant="tonal"
                     color="red"
                     v-bind="props"
-                    :href="item.pdf_url" 
+                    :href="resolveMediaUrl(item.pdf_url)" 
                     target="_blank"
                   >
                     <v-icon size="small">mdi-file-pdf-box</v-icon>
@@ -198,6 +198,8 @@
 </template>
 
 <script>
+import { resolveMediaUrl } from '@/utils/mediaUrl'
+
 export default {
   name: 'ListaProductos',
   props: {
@@ -242,9 +244,10 @@ export default {
     }
   },
   methods: {
+    resolveMediaUrl,
     verImagen(item) {
       if (!item?.imagen_url) return
-      this.imagenActualUrl = item.imagen_url
+      this.imagenActualUrl = resolveMediaUrl(item.imagen_url)
       this.imagenActualNombre = item.nombre || ''
       this.dialogImagen = true
     },

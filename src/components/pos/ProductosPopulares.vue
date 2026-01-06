@@ -42,7 +42,7 @@
                   size="40"
                   :color="producto.imagen_url ? 'transparent' : 'grey-lighten-3'"
                 >
-                  <v-img v-if="producto.imagen_url" :src="producto.imagen_url" cover />
+                  <v-img v-if="producto.imagen_url" :src="resolveMediaUrl(producto.imagen_url)" cover />
                   <v-icon v-else size="24" color="grey">mdi-package-variant</v-icon>
                 </v-avatar>
 
@@ -85,6 +85,8 @@
  * Componente para mostrar los productos más vendidos (Top 15)
  * Permite seleccionar productos para agregarlos al carrito
  */
+
+import { resolveMediaUrl } from '@/utils/mediaUrl'
 
 // Props
 const props = defineProps({

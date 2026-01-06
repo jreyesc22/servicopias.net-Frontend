@@ -59,7 +59,7 @@
               v-if="previews.imagen || localItem.imagen_url"
               type="imagen"
               :preview="previews.imagen"
-              :url="localItem.imagen_url"
+              :url="resolveMediaUrl(localItem.imagen_url)"
               :filename="archivos.imagen?.name"
               :loading="loading"
               @remove="$emit('remove-file', 'imagen')"
@@ -70,7 +70,7 @@
               v-if="previews.pdf || localItem.pdf_url"
               type="pdf"
               :preview="previews.pdf"
-              :url="localItem.pdf_url"
+              :url="resolveMediaUrl(localItem.pdf_url)"
               :filename="archivos.pdf?.name"
               :loading="loading"
               @remove="$emit('remove-file', 'pdf')"
@@ -92,6 +92,7 @@
 <script>
 import FilePreview from './filePreview.vue'
 import EmptyState from './EmptyState.vue'
+import { resolveMediaUrl } from '@/utils/mediaUrl'
 
 export default {
   name: 'FileUploadSection',
@@ -114,6 +115,7 @@ export default {
     }
   },
   methods: {
+    resolveMediaUrl,
     handleFileUpload(event, tipo) {
       const result = this.$emit('file-upload', event, tipo)
       if (result?.success) {

@@ -38,7 +38,7 @@
             <td>
               <div class="d-flex align-center">
                 <v-avatar v-if="item.imagen_url" size="40" class="mr-2">
-                  <v-img :src="item.imagen_url" cover />
+                  <v-img :src="resolveMediaUrl(item.imagen_url)" cover />
                 </v-avatar>
                 <v-icon v-else class="mr-2" color="grey">mdi-package-variant</v-icon>
                 <div>
@@ -174,6 +174,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { resolveMediaUrl } from '@/utils/mediaUrl'
 
 const props = defineProps({
   items: {

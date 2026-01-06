@@ -28,7 +28,7 @@
             <v-avatar size="40" class="mr-3">
               <v-img 
                 v-if="item.imagen_url" 
-                :src="item.imagen_url"
+                :src="resolveMediaUrl(item.imagen_url)"
                 cover
               />
               <v-icon v-else>mdi-package</v-icon>
@@ -61,6 +61,8 @@
 </template>
 
 <script>
+import { resolveMediaUrl } from '@/utils/mediaUrl'
+
 export default {
   name: 'DashboardProductsTable',
 
@@ -92,6 +94,7 @@ export default {
   },
 
   methods: {
+    resolveMediaUrl,
     formatearMoneda(valor) {
       if (!valor) return '0.00'
       return parseFloat(valor).toLocaleString('es-GT', {

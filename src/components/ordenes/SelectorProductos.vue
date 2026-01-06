@@ -104,7 +104,7 @@
                   class="mr-2"
                   rounded="sm"
                 >
-                  <v-img :src="item.imagen_url" :alt="item.nombre" cover />
+                  <v-img :src="resolveMediaUrl(item.imagen_url)" :alt="item.nombre" cover />
                 </v-avatar>
                 <v-icon v-else class="mr-2" color="grey-lighten-1" size="32">
                   mdi-image-off-outline
@@ -203,6 +203,7 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useProductosSelector } from '../composables/useProductosSelector'
 import { useCardUI } from '../composables/useCardUI'
+import { resolveMediaUrl } from '@/utils/mediaUrl'
 
 // Composable de productos
 const {

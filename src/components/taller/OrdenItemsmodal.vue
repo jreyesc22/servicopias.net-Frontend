@@ -153,6 +153,8 @@
 </template>
 
 <script>
+import { resolveMediaUrl } from '@/utils/mediaUrl'
+
 export default {
   name: 'OrdenItemsModal',
   props: {
@@ -231,11 +233,11 @@ export default {
 
     obtenerURLPDF(item) {
       // Construir la URL del PDF según tu estructura
-      if (item.archivo_pdf) return item.archivo_pdf
-      if (item.pdf_url) return item.pdf_url
-      if (item.ruta_pdf) return item.ruta_pdf
-      if (item.item && item.item.archivo_pdf) return item.item.archivo_pdf
-      if (item.item && item.item.pdf_url) return item.item.pdf_url
+      if (item.archivo_pdf) return resolveMediaUrl(item.archivo_pdf)
+      if (item.pdf_url) return resolveMediaUrl(item.pdf_url)
+      if (item.ruta_pdf) return resolveMediaUrl(item.ruta_pdf)
+      if (item.item && item.item.archivo_pdf) return resolveMediaUrl(item.item.archivo_pdf)
+      if (item.item && item.item.pdf_url) return resolveMediaUrl(item.item.pdf_url)
       
       // URL por defecto basada en tu API
       return `${process.env.VUE_APP_API_URL}/files/items/${item.id}/archivo.pdf`
