@@ -5,13 +5,6 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import DashboardOrdenes from '../components/Dashboard/DashboardOrdenes.vue'
-
-export default {
-  name: 'App',
-  components: {
-    DashboardOrdenes
-  }
-}
 </script>

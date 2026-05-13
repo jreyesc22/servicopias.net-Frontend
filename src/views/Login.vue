@@ -70,45 +70,42 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import AuthService from '@/services/auth.service';
 
-export default {
-  name: 'Login',
-  data() {
-    return {
-      username: '',
-      password: '',
-      showPassword: false,
-      loading: false,
-      error: ''
-    }
-  },
-  methods: {
-    async handleLogin() {
-      const { valid } = await this.$refs.form.validate()
-      
-      if (!valid) return
+const router = useRouter();
 
-      this.loading = true
-      this.error = ''
+const form = ref(null);
+const username = ref('');
+const password = ref('');
+const showPassword = ref(false);
+const loading = ref(false);
+const error = ref('');
 
-      try {
-        await AuthService.login(this.username, this.password)
-        this.$router.push('/dashboard')
-      } catch (error) {
-        console.error(error)
-        if (error.message && error.message.includes('401')) {
-           this.error = 'Usuario o contraseña incorrectos'
-        } else {
-           this.error = 'Error al iniciar sesión. Intente nuevamente.'
-        }
-      } finally {
-        this.loading = false
-      }
+const handleLogin = async () => {
+  const { valid } = await form.value.validate();
+  
+  if (!valid) return;
+
+  loading.value = true;
+  error.value = '';
+
+  try {
+    await AuthService.login(username.value, password.value);
+    router.push('/dashboard');
+  } catch (err) {
+    console.error(err);
+    if (err.message && err.message.includes('401')) {
+       error.value = 'Usuario o contraseña incorrectos';
+    } else {
+       error.value = 'Error al iniciar sesión. Intente nuevamente.';
     }
+  } finally {
+    loading.value = false;
   }
-}
+};
 </script>
 <style scoped>
 .login-background {

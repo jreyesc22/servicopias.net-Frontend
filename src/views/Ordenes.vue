@@ -85,74 +85,55 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
 import FormOrden from '@/components/ordenes/FormOrden.vue'
 import ListaOrdenes from '@/components/ordenes/ListaOrdenes.vue'
+import ordenesService from '@/services/ordenes.service'
 
-export default {
-  name: 'OrdenesView',
-  components: {
-    FormOrden,
-    ListaOrdenes
-  },
-  setup() {
-    const vistaActual = ref('inicio')
-    const ordenes = ref([])
-    const snackbar = ref({
-      show: false,
-      message: '',
-      color: 'success'
-    })
+const vistaActual = ref('inicio')
+const ordenes = ref([])
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: 'success'
+})
 
-    async function cargarOrdenes() {
-      try {
-        const res = await fetch(`${process.env.VUE_APP_API_URL}/ordenes/all`)
-        ordenes.value = await res.json()
-      } catch (err) {
-        console.error('Error al cargar órdenes', err)
-        mostrarNotificacion('Error al cargar las órdenes', 'error')
-      }
-    }
-
-    function cambiarVista(vista) {
-      vistaActual.value = vista
-    }
-
-    function mostrarNotificacion(mensaje, color = 'success') {
-      snackbar.value = { show: true, message: mensaje, color }
-    }
-
-    function abrirDialogNuevaOrden() {
-      vistaActual.value = 'nueva'
-    }
-
-    function cerrarFormularioOrden() {
-      vistaActual.value = 'inicio'
-    }
-
-    function ordenGuardada(nuevaOrden) {
-      ordenes.value.unshift(nuevaOrden)
-      vistaActual.value = 'inicio'
-      mostrarNotificacion('Orden guardada exitosamente')
-    }
-
-    onMounted(() => {
-      cargarOrdenes()
-    })
-
-    return {
-      vistaActual,
-      ordenes,
-      snackbar,
-      cambiarVista,
-      mostrarNotificacion,
-      abrirDialogNuevaOrden,
-      cerrarFormularioOrden,
-      ordenGuardada
-    }
+async function cargarOrdenes() {
+  try {
+    const data = await ordenesService.getAll()
+    ordenes.value = data
+  } catch (err) {
+    console.error('Error al cargar órdenes', err)
+    mostrarNotificacion('Error al cargar las órdenes', 'error')
   }
 }
+
+function cambiarVista(vista) {
+  vistaActual.value = vista
+}
+
+function mostrarNotificacion(mensaje, color = 'success') {
+  snackbar.value = { show: true, message: mensaje, color }
+}
+
+function abrirDialogNuevaOrden() {
+  vistaActual.value = 'nueva'
+}
+
+function cerrarFormularioOrden() {
+  vistaActual.value = 'inicio'
+}
+
+function ordenGuardada(nuevaOrden) {
+  ordenes.value.unshift(nuevaOrden)
+  vistaActual.value = 'inicio'
+  mostrarNotificacion('Orden guardada exitosamente')
+}
+
+onMounted(() => {
+  cargarOrdenes()
+})
 </script>
 
 <style scoped>

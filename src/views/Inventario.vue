@@ -110,192 +110,163 @@
 </template>
 
 
-<script>
+<script setup>
 import { ref, onMounted, computed } from 'vue'
 import FormProductoServicio from '@/components/inventario/FormProductoServicio.vue'
 import ListaProductos from '@/components/inventario/ListaProductos.vue'
 import CategoriaForm from './CategoriaForm.vue'
 import axios from 'axios'
 
-export default {
-  name: 'InventarioView',
-  components: {
-    FormProductoServicio,
-    ListaProductos,
-    CategoriaForm 
-  },
-  setup() {
-    // Estados reactivos
-    const vistaActual = ref('inicio')
-    const items = ref([])
-    const itemSeleccionado = ref(null)
-    const loading = ref(false)
-    
-    // Snackbar para notificaciones
-    const snackbar = ref({
-      show: false,
-      message: '',
-      color: 'success'
+// Estados reactivos
+const vistaActual = ref('inicio')
+const items = ref([])
+const itemSeleccionado = ref(null)
+const loading = ref(false)
+
+// Snackbar para notificaciones
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: 'success'
+})
+
+// URL de la API
+const apiUrl = `${process.env.VUE_APP_API_URL}/items`
+
+// Computed properties para estadísticas
+const totalProductos = computed(() => 
+  items.value.filter(item => item.tipo === 'producto').length
+)
+
+const totalServicios = computed(() => 
+  items.value.filter(item => item.tipo === 'servicio').length
+)
+
+const stockBajo = computed(() => 
+  items.value.filter(item => 
+    item.tipo === 'producto' && 
+    item.stock !== undefined && 
+    item.stock < (item.stock_minimo || 10)
+  ).length
+)
+
+const valorInventario = computed(() => {
+  return items.value
+    .filter(item => item.tipo === 'producto')
+    .reduce((total, item) => {
+      const precio = Number(item.precio) || 0
+      const stock = Number(item.stock) || 0
+      return total + (precio * stock)
+    }, 0)
+    .toFixed(2)
+})
+
+// Breadcrumbs dinámicos
+const breadcrumbs = computed(() => {
+  const itemsList = [
+    { text: 'Inicio', icon: 'mdi-home', disabled: false }
+  ]
+  
+  if (vistaActual.value === 'nuevo') {
+    itemsList.push({ 
+      text: itemSeleccionado.value ? 'Editar Item' : 'Nuevo Item', 
+      icon: 'mdi-plus-box',
+      disabled: true
     })
-
-    // URL de la API
-    const apiUrl = `${process.env.VUE_APP_API_URL}/items`
-
-    // Computed properties para estadísticas
-    const totalProductos = computed(() => 
-      items.value.filter(item => item.tipo === 'producto').length
-    )
-    
-    const totalServicios = computed(() => 
-      items.value.filter(item => item.tipo === 'servicio').length
-    )
-    
-    const stockBajo = computed(() => 
-      items.value.filter(item => 
-        item.tipo === 'producto' && 
-        item.stock !== undefined && 
-        item.stock < (item.stock_minimo || 10)
-      ).length
-    )
-    
-    const valorInventario = computed(() => {
-      return items.value
-        .filter(item => item.tipo === 'producto')
-        .reduce((total, item) => {
-          const precio = Number(item.precio) || 0
-          const stock = Number(item.stock) || 0
-          return total + (precio * stock)
-        }, 0)
-        .toFixed(2)
+  } else if (vistaActual.value === 'lista') {
+    itemsList.push({ 
+      text: 'Lista de Items', 
+      icon: 'mdi-format-list-bulleted',
+      disabled: true
     })
-
-    // Breadcrumbs dinámicos
-    const breadcrumbs = computed(() => {
-      const items = [
-        { text: 'Inicio', icon: 'mdi-home', disabled: false }
-      ]
-      
-      if (vistaActual.value === 'nuevo') {
-        items.push({ 
-          text: itemSeleccionado.value ? 'Editar Item' : 'Nuevo Item', 
-          icon: 'mdi-plus-box',
-          disabled: true
-        })
-      } else if (vistaActual.value === 'lista') {
-        items.push({ 
-          text: 'Lista de Items', 
-          icon: 'mdi-format-list-bulleted',
-          disabled: true
-        })
-      } else if (vistaActual.value === 'categorias') {
-        items.push({ 
-          text: 'Categorías', 
-          icon: 'mdi-tag-multiple',
-          disabled: true
-        })
-      }
-      
-      return items
+  } else if (vistaActual.value === 'categorias') {
+    itemsList.push({ 
+      text: 'Categorías', 
+      icon: 'mdi-tag-multiple',
+      disabled: true
     })
+  }
+  
+  return itemsList
+})
 
-    // Funciones
-    function cambiarVista(vista) {
-      vistaActual.value = vista
-      
-      // Limpiar item seleccionado al cambiar vista
-      if (vista !== 'nuevo') {
-        itemSeleccionado.value = null
-      }
-      
-      // Mostrar notificación
-      const mensajes = {
-        'nuevo': 'Formulario de nuevo item activado',
-        'lista': 'Lista de inventario cargada',
-        'categorias': 'Gestión de categorías activada'
-      }
-      
-      if (mensajes[vista]) {
-        mostrarNotificacion(mensajes[vista], 'info')
-      }
-    }
+// Funciones
+function cambiarVista(vista) {
+  vistaActual.value = vista
+  
+  // Limpiar item seleccionado al cambiar vista
+  if (vista !== 'nuevo') {
+    itemSeleccionado.value = null
+  }
+  
+  // Mostrar notificación
+  const mensajes = {
+    'nuevo': 'Formulario de nuevo item activado',
+    'lista': 'Lista de inventario cargada',
+    'categorias': 'Gestión de categorías activada'
+  }
+  
+  if (mensajes[vista]) {
+    mostrarNotificacion(mensajes[vista], 'info')
+  }
+}
 
-    function mostrarNotificacion(mensaje, color = 'success') {
-      snackbar.value = {
-        show: true,
-        message: mensaje,
-        color: color
-      }
-    }
+function mostrarNotificacion(mensaje, color = 'success') {
+  snackbar.value = {
+    show: true,
+    message: mensaje,
+    color: color
+  }
+}
 
-    async function cargarItems() {
-      loading.value = true
-      try {
-        const response = await axios.get(`${apiUrl}/all`)
-        items.value = response.data
-        mostrarNotificacion(`${response.data.length} items cargados exitosamente`)
-      } catch (error) {
-        console.error('Error al cargar productos:', error)
-        mostrarNotificacion('Error al cargar los items', 'error')
-      } finally {
-        loading.value = false
-      }
-    }
+async function cargarItems() {
+  loading.value = true
+  try {
+    const response = await axios.get(`${apiUrl}/all`)
+    items.value = response.data
+    mostrarNotificacion(`${response.data.length} items cargados exitosamente`)
+  } catch (error) {
+    console.error('Error al cargar productos:', error)
+    mostrarNotificacion('Error al cargar los items', 'error')
+  } finally {
+    loading.value = false
+  }
+}
 
-    function itemGuardado() {
+function itemGuardado() {
+  cargarItems()
+  cerrarFormulario()
+  mostrarNotificacion('Item guardado exitosamente', 'success')
+}
+
+function editarItem(item) {
+  itemSeleccionado.value = { ...item }
+  vistaActual.value = 'nuevo'
+  mostrarNotificacion('Item cargado para edición', 'info')
+}
+
+async function eliminarItem(id) {
+  if (confirm('¿Estás seguro de que deseas eliminar este item?')) {
+    try {
+      await axios.delete(`${apiUrl}/${id}`)
       cargarItems()
-      cerrarFormulario()
-      mostrarNotificacion('Item guardado exitosamente', 'success')
-    }
-
-    function editarItem(item) {
-      itemSeleccionado.value = { ...item }
-      vistaActual.value = 'nuevo'
-      mostrarNotificacion('Item cargado para edición', 'info')
-    }
-
-    async function eliminarItem(id) {
-      if (confirm('¿Estás seguro de que deseas eliminar este item?')) {
-        try {
-          await axios.delete(`${apiUrl}/${id}`)
-          cargarItems()
-          mostrarNotificacion('Item eliminado exitosamente', 'success')
-        } catch (error) {
-          console.error('Error al eliminar item:', error)
-          mostrarNotificacion('Error al eliminar el item', 'error')
-        }
-      }
-    }
-
-    function cerrarFormulario() {
-      vistaActual.value = 'inicio'
-      itemSeleccionado.value = null
-    }
-
-    // Lifecycle
-    onMounted(() => {
-      cargarItems()
-    })
-
-    return {
-      vistaActual,
-      items,
-      itemSeleccionado,
-      loading,
-      snackbar,
-      totalProductos,
-      totalServicios,
-      stockBajo,
-      valorInventario,
-      breadcrumbs,
-      cambiarVista,
-      itemGuardado,
-      editarItem,
-      eliminarItem,
-      cerrarFormulario,
-      mostrarNotificacion
+      mostrarNotificacion('Item eliminado exitosamente', 'success')
+    } catch (error) {
+      console.error('Error al eliminar item:', error)
+      mostrarNotificacion('Error al eliminar el item', 'error')
     }
   }
 }
+
+function cerrarFormulario() {
+  vistaActual.value = 'inicio'
+  itemSeleccionado.value = null
+}
+
+// Lifecycle
+onMounted(() => {
+  cargarItems()
+})
 </script>
 
 <style scoped>
