@@ -1,7 +1,8 @@
 <template>
   <v-container class="inventario-view" fluid>
     <!-- ENCABEZADO CON ACCIONES RÁPIDAS -->
-    <v-card class="welcome-card mb-6" elevation="2">
+    <v-fade-transition mode="out-in">
+      <v-card v-if="vistaActual === 'inicio'" class="welcome-card mb-6" elevation="2">
       <v-card-text class="text-center pa-8">
         <v-icon size="80" color="primary" class="mb-4">mdi-store</v-icon>
         <h2 class="text-h4 mb-2">¡Bienvenido al Sistema de Inventario!</h2>
@@ -45,6 +46,7 @@
         </v-row>
       </v-card-text>
     </v-card>
+    </v-fade-transition>
 
    
     <!-- Vistas dinámicas debajo del encabezado -->
@@ -271,25 +273,25 @@ onMounted(() => {
 
 <style scoped>
 .inventario-view {
-  padding: 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: var(--spacing-lg, 24px);
+  background: var(--background-light, #FAFBFC);
   min-height: 100vh;
 }
 
 .header-card {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: white;
+  background: var(--gradient-primary, linear-gradient(135deg, #1976d2 0%, #1565c0 100%));
+  color: var(--surface-color, white);
 }
 
 .gradient-text {
-  background: linear-gradient(45deg, #11998e, #38ef7d);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .action-card {
-  transition: all 0.3s ease;
+  transition: all var(--transition-base, 0.3s ease);
   cursor: pointer;
   border: 2px solid transparent;
   height: 100%;
@@ -297,43 +299,48 @@ onMounted(() => {
 
 .action-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-hover, 0 12px 40px rgba(21, 101, 192, 0.15));
 }
 
 .action-card.active {
-  border-color: #11998e;
-  background: linear-gradient(135deg, #e8f5e8 0%, #f0fff4 100%);
+  border-color: var(--primary-color, #1976D2);
+  background: var(--background-gradient, linear-gradient(135deg, #F8FAFC 0%, #E3F2FD 100%));
 }
 
 .stats-card {
-  transition: all 0.3s ease;
+  transition: all var(--transition-base, 0.3s ease);
 }
 
 .stats-card:hover {
   transform: translateY(-3px);
+  box-shadow: var(--shadow-medium, 0 8px 32px rgba(21, 101, 192, 0.12));
 }
 
 .welcome-card {
-  background: linear-gradient(135deg, #e8f5e8 0%, #f0fff4 100%);
+  background: var(--surface-elevated, #F8FAFC);
+  border-radius: var(--border-radius-lg, 16px);
+  box-shadow: var(--shadow-sm, 0 4px 12px rgba(21, 101, 192, 0.06));
 }
 
 .quick-action-card {
-  transition: all 0.3s ease;
+  transition: all var(--transition-base, 0.3s ease);
   cursor: pointer;
+  border-radius: var(--border-radius, 12px);
 }
 
 .quick-action-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm, 0 4px 15px rgba(0,0,0,0.1));
 }
 
 .form-card, .list-card, .categories-card {
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg, 16px);
+  box-shadow: var(--shadow-medium, 0 8px 32px rgba(21, 101, 192, 0.12));
 }
 
 .v-fade-transition-enter-active,
 .v-fade-transition-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-base, 0.3s ease);
 }
 
 .v-fade-transition-enter-from,
