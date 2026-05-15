@@ -55,7 +55,7 @@
       </v-col>
 
       <v-col 
-        v-if="localItem.tipo === 'producto'" 
+        v-if="localItem.tipo === 'producto' || localItem.tipo === 'insumo'" 
         cols="12" sm="6" md="4"
       >
         <v-text-field
@@ -72,7 +72,7 @@
       </v-col>
 
       <!-- Categoría -->
-      <v-col cols="12" sm="6" :md="localItem.tipo === 'producto' ? 4 : 8">
+      <v-col cols="12" sm="6" :md="['producto', 'insumo'].includes(localItem.tipo) ? 4 : 8">
         <v-select
           v-model="localItem.categoriaId"
           :items="categorias"
@@ -108,7 +108,8 @@ export default {
     return {
       tipoItems: [
         { title: 'Producto', value: 'producto' },
-        { title: 'Servicio', value: 'servicio' }
+        { title: 'Servicio', value: 'servicio' },
+        { title: 'Insumo', value: 'insumo' }
       ]
     }
   }
