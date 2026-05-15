@@ -55,7 +55,7 @@
       </v-col>
 
       <v-col 
-        v-if="localItem.tipo === 'producto' || localItem.tipo === 'insumo'" 
+        v-if="localItem.tipo === 'producto' || localItem.tipo === 'insumo' || (localItem.insumos && localItem.insumos.length > 0)" 
         cols="12" sm="6" md="4"
       >
         <v-text-field

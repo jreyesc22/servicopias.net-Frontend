@@ -54,20 +54,19 @@ export function useApiService() {
 
   const cargarInsumos = async () => {
     try {
-      const response = await fetch(`${API_URL}/items/list`)
+      const response = await fetch(`${API_URL}/items/all?tipo=insumo`)
       const data = await handleResponse(response)
-      
+
       if (!Array.isArray(data)) {
         throw new Error('Formato de respuesta inválido')
       }
-      
-      return data.filter(item => item.tipo === 'insumo')
+
+      return data
     } catch (error) {
       console.error('Error cargando insumos:', error)
       throw new Error('Error al cargar insumos')
     }
   }
-
   const guardarItem = async (item, isEdit = false) => {
     try {
       const url = isEdit 
@@ -137,6 +136,7 @@ export function useApiService() {
   return {
     subirArchivos,
     cargarCategorias,
+    cargarInsumos,
     guardarItem,
     validarItem,
     validarNombre
