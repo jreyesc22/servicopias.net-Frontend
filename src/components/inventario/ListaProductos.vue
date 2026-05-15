@@ -34,6 +34,7 @@
             <th>Precio</th>
             <th>Stock</th>
             <th>Categoría</th>
+            <th class="text-center">Insumos</th>
             <th>Código</th>
             <th class="text-center">Imagen</th>
             <th class="text-center">PDF</th>
@@ -44,8 +45,13 @@
           <tr v-for="item in paginados" :key="item.id">
             <td class="font-weight-medium">{{ item.nombre }}</td>
             <td>
-              <v-chip :color="item.tipo === 'producto' ? 'blue' : 'green'" size="small" variant="tonal">
-                <v-icon start size="small">{{ item.tipo === 'producto' ? 'mdi-package' : 'mdi-tools' }}</v-icon>
+              <v-chip 
+                :color="getColorTipo(item.tipo)" 
+                size="small" 
+                variant="tonal"
+                class="font-weight-bold"
+              >
+                <v-icon start size="small">{{ getIconoTipo(item.tipo) }}</v-icon>
                 {{ item.tipo }}
               </v-chip>
             </td>
@@ -67,24 +73,48 @@
               </v-chip>
               <span v-else class="text-grey">-</span>
             </td>
+            <td class="text-center">
+              <v-tooltip v-if="item.insumos && item.insumos.length > 0" :text="`${item.insumos.length} insumo(s)`">
+                <template #activator="{ props }">
+                  <v-chip 
+                    v-bind="props"
+                    color="warning" 
+                    size="small" 
+                    variant="tonal"
+                    label
+                    class="font-weight-bold"
+                  >
+                    <v-icon start size="small">mdi-package-multiple</v-icon>
+                    {{ item.insumos.length }}
+                  </v-chip>
+                </template>
+              </v-tooltip>
+              <span v-else class="text-grey-lighten-1">-</span>
+            </td>
             <td>
               <code v-if="item.codigo_barras" class="text-caption">{{ item.codigo_barras }}</code>
               <span v-else class="text-grey">-</span>
             </td>
             <td class="text-center">
-              <v-tooltip :text="item.imagen_url ? 'Ver imagen' : 'Sin imagen'">
+              <v-tooltip :text="item.imagen_url ? 'Click para ver en grande' : 'Sin imagen'">
                 <template #activator="{ props }">
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="tonal"
-                    color="primary"
+                  <div 
                     v-bind="props"
-                    :disabled="!item.imagen_url"
-                    @click="verImagen(item)"
+                    class="imagen-thumbnail"
+                    :class="{ 'imagen-clickable': item.imagen_url }"
+                    @click="item.imagen_url && verImagen(item)"
                   >
-                    <v-icon size="small">{{ item.imagen_url ? 'mdi-image' : 'mdi-image-off' }}</v-icon>
-                  </v-btn>
+                    <v-img
+                      v-if="item.imagen_url"
+                      :src="resolveMediaUrl(item.imagen_url)"
+                      :alt="item.nombre"
+                      class="imagen-miniatura"
+                      cover
+                    />
+                    <div v-else class="imagen-placeholder">
+                      <v-icon color="grey-lighten-1" size="small">mdi-image-off</v-icon>
+                    </div>
+                  </div>
                 </template>
               </v-tooltip>
             </td>
@@ -219,7 +249,7 @@ export default {
   },
   computed: {
     filtrados() {
-      if (!this.busqueda.trim()) return this.items
+      if (!this.busqueda || !this.busqueda.trim()) return this.items
       const b = this.busqueda.toLowerCase()
       return this.items.filter(
         item =>
@@ -245,6 +275,27 @@ export default {
   },
   methods: {
     resolveMediaUrl,
+    
+    // Obtener color según tipo de item
+    getColorTipo(tipo) {
+      const colores = {
+        'producto': 'primary',      // Azul: #1976D2
+        'servicio': 'success',      // Verde: #43A047
+        'insumo': 'warning'         // Naranja: #FB8C00
+      }
+      return colores[tipo] || 'secondary'
+    },
+    
+    // Obtener ícono según tipo de item
+    getIconoTipo(tipo) {
+      const iconos = {
+        'producto': 'mdi-package',
+        'servicio': 'mdi-wrench',
+        'insumo': 'mdi-beaker'
+      }
+      return iconos[tipo] || 'mdi-package-variant'
+    },
+    
     verImagen(item) {
       if (!item?.imagen_url) return
       this.imagenActualUrl = resolveMediaUrl(item.imagen_url)
@@ -272,39 +323,116 @@ export default {
 }
 
 .v-table thead tr th {
-  background-color: #f5f5f5;
-  font-weight: 600;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  color: white;
+  font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.5px;
+  padding: var(--spacing-md) !important;
+}
+
+.v-table tbody tr {
+  transition: all var(--transition-base);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .v-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background: linear-gradient(90deg, rgba(25, 118, 210, 0.03) 0%, rgba(25, 118, 210, 0.01) 100%);
+  box-shadow: inset 0 2px 8px rgba(25, 118, 210, 0.04);
+  transform: translateY(-1px);
+}
+
+.v-table tbody td {
+  padding: var(--spacing-md) !important;
+  vertical-align: middle;
 }
 
 code {
-  background-color: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: var(--surface-elevated);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
   font-family: 'Courier New', monospace;
+  font-size: var(--text-xs);
+  color: var(--primary-color);
+  border-left: 3px solid var(--primary-light);
+  display: inline-block;
 }
 
 .bg-primary {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  box-shadow: var(--shadow-sm);
 }
 
 .bg-error {
-  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  background: linear-gradient(135deg, var(--error-color) 0%, #c62828 100%);
 }
 
 .text-white {
   color: white !important;
 }
 
+.elevation-1 {
+  box-shadow: var(--shadow-light) !important;
+}
+
+/* Animación suave para diálogos */
+.v-dialog {
+  animation: slideInRight var(--transition-smooth);
+}
+
+/* Miniatura de imagen en tabla */
+.imagen-thumbnail {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+  background: var(--surface-elevated);
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.imagen-miniatura {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-sm);
+}
+
+.imagen-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--surface-elevated) 0%, rgba(0, 0, 0, 0.02) 100%);
+  color: var(--primary-light);
+}
+
+.imagen-clickable {
+  cursor: pointer;
+  border-color: var(--primary-light);
+}
+
+.imagen-clickable:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+  transform: scale(1.08);
+}
+
 @media (max-width: 767px) {
   .v-table {
-    font-size: 12px;
+    font-size: var(--text-xs);
+  }
+  
+  .v-table thead tr th {
+    padding: var(--spacing-sm) !important;
+  }
+  
+  .v-table tbody td {
+    padding: var(--spacing-sm) !important;
   }
 }
 </style>

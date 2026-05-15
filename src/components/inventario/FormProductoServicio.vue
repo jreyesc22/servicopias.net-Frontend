@@ -23,34 +23,94 @@
 
           <!-- Opciones Adicionales Modales -->
           <div class="d-flex flex-wrap gap-4 justify-center">
-            <v-btn 
-              color="info" 
-              prepend-icon="mdi-text-box-multiple-outline" 
-              @click="dialogDetalles = true" 
-              variant="tonal"
-            >
-              Detalles Adicionales
-            </v-btn>
+            <v-tooltip location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  v-bind="props"
+                  color="info" 
+                  icon="mdi-text-box-multiple-outline" 
+                  @click="dialogDetalles = true" 
+                  variant="tonal"
+                  size="large"
+                ></v-btn>
+              </template>
+              <span>Detalles Adicionales</span>
+            </v-tooltip>
 
-            <v-btn 
-              v-if="localItem.tipo === 'servicio' || localItem.tipo === 'producto'"
-              color="warning" 
-              prepend-icon="mdi-format-list-bulleted" 
-              @click="dialogInsumos = true" 
-              variant="tonal"
-            >
-              Insumos Adicionales
-            </v-btn>
+            <v-tooltip location="top" v-if="localItem.tipo === 'servicio' || localItem.tipo === 'producto'">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  v-bind="props"
+                  color="warning" 
+                  icon="mdi-format-list-bulleted" 
+                  @click="dialogInsumos = true" 
+                  variant="tonal"
+                  size="large"
+                ></v-btn>
+              </template>
+              <span>Insumos Adicionales</span>
+            </v-tooltip>
 
-            <v-btn 
-              color="success" 
-              prepend-icon="mdi-file-upload-outline" 
-              @click="dialogArchivos = true" 
-              variant="tonal"
-            >
-              Archivos Adjuntos
-            </v-btn>
+            <v-tooltip location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  v-bind="props"
+                  color="success" 
+                  icon="mdi-file-upload-outline" 
+                  @click="dialogArchivos = true" 
+                  variant="tonal"
+                  size="large"
+                ></v-btn>
+              </template>
+              <span>Archivos Adjuntos</span>
+            </v-tooltip>
           </div>
+        </v-card-text>
+      </v-card>
+
+      <!-- Card Resumen de Insumos (Mostrar solo si hay insumos agregados) -->
+      <v-card v-if="localItem.insumos && localItem.insumos.length > 0" class="mb-4 bg-blue-grey-lighten-5" elevation="2">
+        <v-card-title class="bg-warning text-white d-flex align-center">
+          <v-icon class="mr-3">mdi-package-multiple-outline</v-icon>
+          <span>Insumos Agregados</span>
+          <v-spacer></v-spacer>
+          <v-chip label size="small" variant="outlined" class="text-white border-white">
+            {{ localItem.insumos.length }}
+          </v-chip>
+        </v-card-title>
+        <v-card-text class="pa-4">
+          <!-- Lista de insumos en tabla compacta -->
+          <v-table density="compact" class="elevation-0">
+            <thead>
+              <tr class="bg-grey-lighten-3">
+                <th>Insumo</th>
+                <th class="text-right">Cantidad</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(insumo, index) in localItem.insumos" :key="index">
+                <td class="font-weight-medium">{{ insumo.nombre }}</td>
+                <td class="text-right">{{ insumo.cantidad }}</td>
+                <td class="text-right font-weight-bold text-primary">
+                  Q{{ (Number(insumo.precio || 0) * Number(insumo.cantidad)).toFixed(2) }}
+                </td>
+              </tr>
+              <tr class="bg-blue-grey-lighten-3 font-weight-bold">
+                <td colspan="2" class="text-right pr-2">
+                  <v-icon size="small" class="mr-1">mdi-calculator</v-icon> Costo Total Insumos:
+                </td>
+                <td class="text-right text-h6 text-success">
+                  Q{{ costoTotalInsumos }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+
+          <!-- Alert de referencia -->
+          <v-alert type="success" variant="tonal" density="compact" class="mt-4" icon="mdi-check-circle">
+            Los insumos están listos para guardar. Se almacenarán cuando completes el formulario.
+          </v-alert>
         </v-card-text>
       </v-card>
 
@@ -146,7 +206,7 @@
 </template>
 
 <script>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { debounce } from 'lodash'
 
 // Importar composables 
@@ -233,7 +293,8 @@ export default {
       descripcion: '',
       imagen_url: '',
       pdf_url: '',
-      categoriaId: ''
+      categoriaId: '',
+      insumos: []
     })
 
     // Métodos - DEFINIR ANTES DEL WATCHER
@@ -247,7 +308,8 @@ export default {
         descripcion: '',
         imagen_url: '',
         pdf_url: '',
-        categoriaId: ''
+        categoriaId: '',
+        insumos: []
       }
       resetArchivos()
       duplicadoError.value = false
@@ -327,6 +389,19 @@ export default {
       }
     }
 
+    // Computed properties
+    const costoTotalInsumos = computed(() => {
+      if (!localItem.value.insumos || localItem.value.insumos.length === 0) {
+        return '0.00'
+      }
+      const total = localItem.value.insumos.reduce((sum, insumo) => {
+        const precio = Number(insumo.precio || 0)
+        const cantidad = Number(insumo.cantidad || 1)
+        return sum + (precio * cantidad)
+      }, 0)
+      return total.toFixed(2)
+    })
+
     // Lifecycle
     onMounted(() => {
       loadCategorias()
@@ -358,6 +433,9 @@ export default {
       // Notificaciones
       snackbar,
       showMessage,
+      
+      // Computed
+      costoTotalInsumos,
       
       // Métodos
       handleValidateName,
