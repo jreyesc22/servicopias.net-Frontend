@@ -101,6 +101,21 @@
           </v-col>
 
           <v-col cols="12" md="4">
+            <v-select
+              v-model="filtroEmpleado"
+              :items="[{ id: '', nombre: 'Todos los empleados' }, ...empleados]"
+              item-title="nombre"
+              item-value="id"
+              label="Filtrar por empleado"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-account"
+              class="control-select"
+              color="primary"
+            />
+          </v-col>
+
+          <v-col cols="12" md="4">
             <v-text-field
               v-model="fechaSeleccionada"
               type="date"
@@ -191,6 +206,7 @@ const resumenDia = ref(null)
 const cargando = ref(false)
 const fechaSeleccionada = ref(new Date().toISOString().split('T')[0])
 const filtroTipo = ref('')
+const filtroEmpleado = ref('')
 const mostrarModal = ref(false)
 const movimientoSeleccionado = ref(null)
 const modoModal = ref('crear')
@@ -210,11 +226,19 @@ const fechaActual = computed(() =>
   })
 )
 
-const movimientosFiltrados = computed(() =>
-  !filtroTipo.value
-    ? movimientos.value
-    : movimientos.value.filter(m => m.tipo_movimiento === filtroTipo.value)
-)
+const movimientosFiltrados = computed(() => {
+  let filtrados = movimientos.value
+
+  if (filtroTipo.value) {
+    filtrados = filtrados.filter(m => m.tipo_movimiento === filtroTipo.value)
+  }
+
+  if (filtroEmpleado.value) {
+    filtrados = filtrados.filter(m => m.id_empleado === filtroEmpleado.value || (m.Empleado && m.Empleado.id === filtroEmpleado.value))
+  }
+
+  return filtrados
+})
 
 // Función para formatear moneda
 const formatearMoneda = (valor) => {
