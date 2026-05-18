@@ -11,29 +11,24 @@
               <p class="text-caption text-white ma-0">Ventas rápidas con escáner de código de barras</p>
             </div>
             <v-spacer />
-            <!-- Estadísticas rápidas -->
-            <div class="d-flex gap-2">
-              <v-chip size="small" color="white" variant="tonal">
-                <v-icon start size="small">mdi-barcode</v-icon>
-                {{ estadisticas.escaneados }}
-              </v-chip>
-              <v-chip size="small" color="success" variant="tonal">
-                <v-icon start size="small">mdi-check</v-icon>
-                {{ estadisticas.exitosos }}
-              </v-chip>
-              <v-chip v-if="estadisticas.errores > 0" size="small" color="error" variant="tonal">
-                <v-icon start size="small">mdi-alert</v-icon>
-                {{ estadisticas.errores }}
-              </v-chip>
-              <v-divider vertical class="mx-2" color="white"></v-divider>
-              <v-chip color="white" variant="outlined">
-                <v-icon start>mdi-clock-outline</v-icon>
-                {{ horaActual }}
-              </v-chip>
-              <v-chip color="white" variant="outlined">
-                <v-icon start>mdi-account</v-icon>
-                {{ nombreEmpleado }}
-              </v-chip>
+            <!-- Información de Última Venta -->
+            <div class="d-flex gap-2 align-center">
+              <template v-if="ultimaVenta.ordenId">
+                <span class="text-caption text-white mr-2 text-uppercase font-weight-bold">Última Venta:</span>
+                <v-chip color="white" variant="outlined" size="small">
+                  <v-icon start size="small">mdi-receipt</v-icon>
+                  #{{ ultimaVenta.ordenId }}
+                </v-chip>
+                <v-chip color="success" variant="flat" size="small" class="font-weight-bold">
+                  Total: Q{{ formatMoney(ultimaVenta.total) }}
+                </v-chip>
+                <v-chip v-if="ultimaVenta.cambio !== undefined && ultimaVenta.cambio !== null" color="warning" variant="flat" size="small" class="font-weight-bold text-black">
+                  Cambio: Q{{ formatMoney(ultimaVenta.cambio) }}
+                </v-chip>
+              </template>
+              <template v-else>
+                <span class="text-caption text-white opacity-70">Aún no hay ventas registradas en esta sesión</span>
+              </template>
             </div>
           </v-card-text>
         </v-card>
