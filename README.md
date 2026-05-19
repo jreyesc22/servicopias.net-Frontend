@@ -3,6 +3,21 @@
 Aplicación web del panel interno de ServiCopias.net, construida con Vue 3 + Vuetify.
 Este frontend consume la API del backend (`/api/*`) para gestionar órdenes, caja, inventario, POS, configuración y reportes.
 
+## Problema que se está resolviendo
+
+Este frontend resuelve la necesidad de centralizar en una sola interfaz operativa los procesos internos de ServiCopias.net, permitiendo:
+
+- Control de órdenes de trabajo de extremo a extremo.
+- Gestión de caja y cobros con flujo trazable.
+- Administración de inventario y recepción de mercadería.
+- Operación de punto de venta (POS) y tareas administrativas.
+
+El objetivo es reducir tiempos operativos, disminuir errores manuales y mejorar la visibilidad del estado del negocio en tiempo real.
+
+## Autoría del README
+
+Este README fue elaborado por Josue David Reyes Cán.
+
 ## Tecnologías
 
 - Vue 3
