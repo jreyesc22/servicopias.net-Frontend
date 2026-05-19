@@ -263,6 +263,13 @@ export default {
           color: 'info'
         },
         { 
+          id: 'recepcion', 
+          title: 'Recepción', 
+          icon: 'mdi-truck-delivery', 
+          route: '/recepcion',
+          color: 'blue-grey'
+        },
+        { 
           id: 'taller', 
           title: 'Taller de Impresión', 
           icon: 'mdi-wrench', 

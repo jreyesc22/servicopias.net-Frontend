@@ -16,6 +16,7 @@ const routes = [
       { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/Dashboard.vue') },
       { path: 'registros', name: 'Registros', component: () => import('@/views/Registros.vue') },
       { path: 'inventario', name: 'Inventario', component: () => import('@/views/Inventario.vue') },
+      { path: 'recepcion', name: 'RecepcionMercaderia', component: () => import('@/views/RecepcionMercaderia.vue') },
       { path: 'configuracion', name: 'Configuracion', component: () => import('@/views/Configuracion.vue') },
       { path: 'categorias/nueva', name: 'NuevaCategoria', component: () => import('@/views/CategoriaForm.vue') },
       { path: 'Taller', name: 'OrdeneTaller', component: () => import('@/views/Taller.vue') },
