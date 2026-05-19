@@ -1,6 +1,12 @@
 class ApiService {
   constructor() {
-    this.baseURL = process.env.VUE_APP_API_URL
+    // Normalizar baseURL: eliminar slash final y asegurar que termine en '/api'
+    const raw = process.env.VUE_APP_API_URL || ''
+    let normalized = raw.replace(/\/+$/g, '') // quitar slashes al final
+    if (normalized && !normalized.endsWith('/api')) {
+      normalized = `${normalized}/api`
+    }
+    this.baseURL = normalized
     this.timeout = 10000
   }
 
