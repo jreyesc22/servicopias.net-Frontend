@@ -1,10 +1,10 @@
 # Sistema de Gestión de Categorías
 
-## 📋 Descripción
+##  Descripción
 
 Sistema modular para la gestión completa de categorías del inventario, implementado siguiendo el patrón de separación de responsabilidades: composables para lógica de negocio, componentes hijos para UI, y comunicación basada en eventos.
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ```
 CategoriaForm.vue (Vista Principal)
@@ -13,7 +13,7 @@ CategoriaForm.vue (Vista Principal)
     └── ListaCategorias.vue (Componente - Listar)
 ```
 
-## 📁 Estructura de Archivos
+## Estructura de Archivos
 
 ### Composable
 - **Ubicación**: `src/components/composables/useCategorias.js`
@@ -35,10 +35,10 @@ CategoriaForm.vue (Vista Principal)
 - **Ubicación**: `src/views/CategoriaForm.vue`
 - **Responsabilidad**: Coordinar composable y componentes hijos
 
-## 🔄 Flujo de Datos
+## Flujo de Datos
 
 ### Crear Categoría
-```
+
 1. Usuario completa FormCategoria
 2. FormCategoria emite "categoria-creada" con datos
 3. CategoriaForm recibe evento → llama crearCategoria() del composable
@@ -47,8 +47,8 @@ CategoriaForm.vue (Vista Principal)
 6. CategoriaForm muestra notificación de éxito/error
 ```
 
-### Editar Categoría
-```
+## Editar Categoría
+
 1. Usuario hace clic en "editar" en ListaCategorias
 2. ListaCategorias emite "editar" con categoría
 3. CategoriaForm actualiza categoriaSeleccionada
@@ -71,10 +71,10 @@ CategoriaForm.vue (Vista Principal)
 6. CategoriaForm muestra notificación
 ```
 
-## 📡 API del Composable
+##  API del Composable
 
 ### Estado Reactivo
-```javascript
+javascript
 const {
   categorias,           // ref([]) - Array de todas las categorías
   categoriasOrdenadas,  // computed - Categorías ordenadas alfabéticamente
@@ -85,7 +85,7 @@ const {
 ```
 
 ### Métodos
-```javascript
+javascript
 // Cargar categorías desde API
 await fetchCategorias()
 
@@ -112,7 +112,7 @@ await recargarCategorias()
 limpiarError()
 ```
 
-## 📝 Props y Eventos
+## Props y Eventos
 
 ### FormCategoria.vue
 
@@ -168,7 +168,7 @@ emit('eliminar', categoriaId)
 emit('recargar')
 ```
 
-## 🎨 Características
+## Características
 
 ### FormCategoria
 - ✅ Modo dual: crear/editar con el mismo componente
@@ -193,7 +193,7 @@ emit('recargar')
 - ✅ Coordinación de eventos entre componentes
 - ✅ Manejo centralizado de errores
 
-## 🔌 Endpoints API
+## Endpoints API
 
 ```javascript
 // Base URL
@@ -214,34 +214,34 @@ Body: { nombre: string, descripcion?: string }
 DELETE /categorias/:id
 ```
 
-## 🎯 Ventajas del Patrón Implementado
+## Ventajas del Patrón Implementado
 
-### ✅ Separación de Responsabilidades
+### Separación de Responsabilidades
 - **Composable**: Lógica de negocio y llamadas API
 - **Componentes**: Solo presentación y UI
 - **Vista**: Coordinación de flujo
 
-### ✅ Reutilización
+###  Reutilización
 - `useCategorias` puede usarse en cualquier componente
 - `FormCategoria` y `ListaCategorias` son independientes
 - Fácil agregar nuevas vistas que usen las mismas categorías
 
-### ✅ Testabilidad
+### Testabilidad
 - Composable puede testearse independientemente
 - Componentes pueden testearse con props mockeadas
 - No hay acoplamiento directo con la API
 
-### ✅ Mantenibilidad
+### Mantenibilidad
 - Cambios en API solo afectan al composable
 - Cambios de UI solo afectan a componentes
 - Fácil debugging por responsabilidades claras
 
-### ✅ Estado Singleton
+###  Estado Singleton
 - Una sola fuente de verdad para categorías
 - Cambios se reflejan automáticamente en todos los componentes
 - No hay datos duplicados o desincronizados
 
-## 🔄 Patrón de Comunicación
+##  Patrón de Comunicación
 
 ```
 ┌─────────────────────────────────────────┐
@@ -266,7 +266,7 @@ DELETE /categorias/:id
 └──────────────────────────────────────────┘
 ```
 
-## 📌 Ejemplo de Uso en Otro Componente
+## Ejemplo de Uso en Otro Componente
 
 ```vue
 <template>
@@ -300,7 +300,7 @@ onMounted(async () => {
 </script>
 ```
 
-## 🚀 Mejoras Futuras
+## Mejoras Futuras
 
 - [ ] Paginación para listas grandes
 - [ ] Filtros avanzados (activo/inactivo)
@@ -311,7 +311,7 @@ onMounted(async () => {
 - [ ] Contador de items por categoría
 - [ ] Ordenamiento personalizado (drag & drop)
 
-## 📚 Referencias
+## Referencias
 
 - [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq.html)
 - [Vuetify 3 Components](https://vuetifyjs.com/en/components/all/)
