@@ -253,9 +253,31 @@ const cerrarModalNuevoProducto = () => {
   setTimeout(() => scannerRef.value?.enfocarInput(), 100);
 };
 
-const onProductoCreado = () => {
-  mostrarNotificacion('Producto creado. Puede escanearlo para añadirlo a la recepción.', 'success');
-  cerrarModalNuevoProducto();
+const onProductoCreado = async (itemGuardado) => {
+  mostrarNotificacion('Producto creado. Agregando a la recepción...', 'success');
+  try {
+    if (itemGuardado && itemGuardado.id) {
+      agregarALista({ ...itemGuardado, cantidad: 1 });
+      mostrarNotificacion(`${itemGuardado.nombre} agregado a la lista de recepción`, 'success');
+    } else {
+      // Fallback: intentar recuperar el producto recién creado por su código de barras
+      const codigo = nuevoItemModel.value?.codigo_barras || codigoDesconocido.value;
+      if (codigo) {
+        const resp = await POSService.buscarPorCodigoBarras(codigo);
+        if (resp && resp.encontrado && resp.item) {
+          agregarALista(resp.item);
+          mostrarNotificacion(`${resp.item.nombre} agregado a la lista de recepción`, 'success');
+        } else {
+          mostrarNotificacion('Producto creado. Escanee el código para agregarlo.', 'info');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error al recuperar producto creado:', err);
+    mostrarNotificacion('Producto creado, pero no se pudo agregar automáticamente', 'warning');
+  } finally {
+    cerrarModalNuevoProducto();
+  }
 };
 </script>
 

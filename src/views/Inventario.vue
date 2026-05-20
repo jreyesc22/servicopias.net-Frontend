@@ -43,6 +43,28 @@
               </v-card-text>
             </v-card>
           </v-col>
+          <v-col cols="12" md="4">
+            <v-card class="quick-action-card" @click="cambiarVista('lowstock')" hover>
+              <v-card-text class="d-flex align-center">
+                <v-icon size="40" color="warning" class="mr-4">mdi-alert-circle</v-icon>
+                <div>
+                  <h4 class="text-h6">Stock Bajo</h4>
+                  <p class="text-body-2 text-grey-darken-1">Ver productos sin stock o por debajo del umbral</p>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card class="quick-action-card" @click="cambiarVista('recepcion')" hover>
+              <v-card-text class="d-flex align-center">
+                <v-icon size="40" color="secondary" class="mr-4">mdi-truck-delivery</v-icon>
+                <div>
+                  <h4 class="text-h6">Recepción</h4>
+                  <p class="text-body-2 text-grey-darken-1">Registrar mercadería entrante</p>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
         </v-row>
       </v-card-text>
     </v-card>
@@ -99,6 +121,33 @@
 
         </v-card>
       </div>
+
+      <div v-else-if="vistaActual === 'recepcion'" key="recepcion">
+        <v-card class="recepcion-card" elevation="2">
+          <v-card-title class="d-flex align-center">
+            <v-icon class="mr-3" color="secondary">mdi-truck-delivery</v-icon>
+            <span>Recepción de Mercadería</span>
+            <v-spacer></v-spacer>
+            <v-btn icon="mdi-close" variant="text" @click="cambiarVista('inicio')" />
+          </v-card-title>
+          <v-card-text>
+            <RecepcionMercaderia />
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <div v-else-if="vistaActual === 'lowstock'" key="lowstock">
+        <v-card class="lowstock-view" elevation="2">
+          <v-card-title>
+            <span>Productos con stock bajo</span>
+            <v-spacer></v-spacer>
+            <v-btn icon="mdi-close" variant="text" @click="cambiarVista('inicio')" />
+          </v-card-title>
+          <v-card-text>
+            <LowStockPanel />
+          </v-card-text>
+        </v-card>
+      </div>
     </v-fade-transition>
 
     <!-- Snackbar de notificaciones -->
@@ -116,7 +165,9 @@
 import { ref, onMounted, computed } from 'vue'
 import FormProductoServicio from '@/components/inventario/FormProductoServicio.vue'
 import ListaProductos from '@/components/inventario/ListaProductos.vue'
+import LowStockPanel from '@/components/inventario/LowStockPanel.vue'
 import CategoriaForm from './CategoriaForm.vue'
+import RecepcionMercaderia from '@/views/RecepcionMercaderia.vue'
 import axios from 'axios'
 
 // Estados reactivos
@@ -185,6 +236,12 @@ const breadcrumbs = computed(() => {
     itemsList.push({ 
       text: 'Categorías', 
       icon: 'mdi-tag-multiple',
+      disabled: true
+    })
+  } else if (vistaActual.value === 'recepcion') {
+    itemsList.push({
+      text: 'Recepción',
+      icon: 'mdi-truck-delivery',
       disabled: true
     })
   }
