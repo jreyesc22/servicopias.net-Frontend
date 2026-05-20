@@ -1,10 +1,10 @@
 # Módulo Taller - Documentación
 
-## 📋 Descripción General
+## Descripción General
 
 El módulo de taller gestiona las órdenes en proceso de producción, permitiendo visualizar, filtrar y actualizar el estado de las órdenes que están siendo preparadas.
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ### Estructura de Archivos
 
@@ -24,7 +24,7 @@ services/
 └── ordenes.service.js       # Servicio API para órdenes (singleton)
 ```
 
-## 🔧 Componentes
+## Componentes
 
 ### 1. **ordenTaller.vue**
 Componente principal que muestra la interfaz del taller.
@@ -108,7 +108,7 @@ delete(id)                      // Eliminar orden
 getPublicStatus(id)             // Estado público (sin auth)
 ```
 
-## 📊 Modelo de Datos
+## Modelo de Datos
 
 ### Orden (en el taller)
 
@@ -120,7 +120,7 @@ getPublicStatus(id)             // Estado público (sin auth)
   cliente_nit: String,
   fecha: Date,
   estado: String,              // 'pendiente' | 'en proceso' | 'en produccion'
-  origen: String,              // 'local' | 'web' ⭐ NUEVO
+  origen: String,              // 'local' | 'web'  NUEVO
   items: Array,
   estadoOriginal: String,      // Para detectar cambios
   estadoCambiado: Boolean,     // Flag de modificación
@@ -128,7 +128,7 @@ getPublicStatus(id)             // Estado público (sin auth)
 }
 ```
 
-## 🎨 Estados Disponibles
+## Estados Disponibles
 
 ### Estados del Taller
 | Estado | Color | Ícono | Descripción |
@@ -140,13 +140,13 @@ getPublicStatus(id)             // Estado público (sin auth)
 | entregado | success | mdi-truck-check | Orden entregada al cliente |
 | cancelado | red | mdi-cancel | Orden cancelada |
 
-### Orígenes ⭐ NUEVO
+### Orígenes  NUEVO
 | Origen | Color | Ícono | Descripción |
 |--------|-------|-------|-------------|
 | local | indigo | mdi-store | Orden creada en local |
 | web | teal | mdi-web | Orden desde página web |
 
-## 🔄 Flujo de Trabajo
+## Flujo de Trabajo
 
 ### 1. Carga Inicial
 ```
@@ -189,14 +189,14 @@ Usuario selecciona filtros → Computed ordenesFiltradas
                             ↓
                     Aplicar filtro estado
                             ↓
-                    Aplicar filtro origen ⭐ NUEVO
+                    Aplicar filtro origen  NUEVO
                             ↓
                     Aplicar búsqueda texto
                             ↓
                     Renderizar resultados
 ```
 
-## 🎯 Filtros Disponibles
+##  Filtros Disponibles
 
 ### Filtro por Estado
 - **Todos**: Muestra todas las órdenes
@@ -204,7 +204,7 @@ Usuario selecciona filtros → Computed ordenesFiltradas
 - **En Proceso**: Solo órdenes en proceso
 - **En Producción**: Solo órdenes en producción
 
-### Filtro por Origen ⭐ NUEVO
+### Filtro por Origen  NUEVO
 - **Todos**: Muestra órdenes de todos los orígenes
 - **Local**: Solo órdenes creadas localmente
 - **Web**: Solo órdenes desde la página web
@@ -215,20 +215,20 @@ Busca en:
 - Teléfono del cliente
 - NIT del cliente
 
-## 📱 Responsive Design
+##  Responsive Design
 
 El componente está optimizado para tablets y pantallas grandes:
 
 - **Tablet (≥ 768px)**: Vista completa con todas las columnas
 - **Mobile (< 768px)**: Ajuste de tamaños de botones y chips
 
-## 🔐 Seguridad
+##  Seguridad
 
-- ⚠️ **TODO**: Implementar autenticación
-- ⚠️ **TODO**: Obtener `id_usuario` del contexto de autenticación
+-  **TODO**: Implementar autenticación
+-  **TODO**: Obtener `id_usuario` del contexto de autenticación
 - Actualmente usa `id_usuario: 1` hardcoded
 
-## 🚀 Mejoras Futuras
+## Mejoras Futuras
 
 1. **Autenticación**
    - Integrar sistema de usuarios
@@ -251,7 +251,7 @@ El componente está optimizado para tablets y pantallas grandes:
    - Exportar lista filtrada a Excel
    - Generar reportes PDF
 
-## 📝 Uso del Composable en Otros Componentes
+##  Uso del Composable en Otros Componentes
 
 ```javascript
 import { useTallerOrdenes } from '@/components/composables/useTallerOrdenes';
@@ -279,7 +279,7 @@ export default {
 };
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Problema: Órdenes no se cargan
 **Solución**: Verificar que la API esté corriendo y `VUE_APP_API_URL` esté configurada correctamente.
@@ -290,7 +290,7 @@ export default {
 ### Problema: Error al guardar estado
 **Solución**: Verificar permisos de usuario y que el endpoint `/ordenes/update/:id` esté disponible.
 
-## 📚 Referencias
+##  Referencias
 
 - [Vue 3 Composition API](https://vuejs.org/guide/extras/composition-api-faq.html)
 - [Vuetify 3 DataTable](https://vuetifyjs.com/en/components/data-tables/)
