@@ -520,7 +520,7 @@ export default {
       try {
         datosOrden.total = this.totalOrden
         
-        const currentUser = AuthService.getCurrentUser()
+        const currentUser = AuthService.getCurrentEmpleado()
         const empleadoId = currentUser ? currentUser.id : null
 
         const payload = {
