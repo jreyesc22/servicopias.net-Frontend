@@ -16,6 +16,14 @@ class POSService {
       );
       return response;
     } catch (error) {
+      const statusMatch = String(error?.message || '').match(/status:\s*(\d+)/i);
+      const status = statusMatch ? Number(statusMatch[1]) : null;
+
+      // 404 significa que el producto no existe; no debe tratarse como error técnico.
+      if (status === 404) {
+        return { encontrado: false, item: null };
+      }
+
       console.error('Error al buscar producto por código de barras:', error);
       throw error;
     }

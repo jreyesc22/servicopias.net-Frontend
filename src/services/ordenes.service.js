@@ -133,7 +133,7 @@ class OrdenesService {
     if (estadoPago) queryParams.append('estadoPago', estadoPago);
     
     try {
-      const { data } = await axios.get(`${API_URL}/ordenes/date-range?${queryParams.toString()}`);
+      const { data } = await axios.get(`${API_URL}/estadisticas/date-range?${queryParams.toString()}`);
       return data;
     } catch (error) {
       throw normalizeAxiosError(error, 'Error al buscar órdenes por rango de fechas');
@@ -149,10 +149,15 @@ class OrdenesService {
    */
   async getResumenByDateRange(params) {
     if (!params) params = {};
-    const { fechaInicio, fechaFin } = params;
-    const queryParams = new URLSearchParams({ fechaInicio, fechaFin }).toString();
+    const { fechaInicio, fechaFin, empleadoId } = params;
+    
+    const queryParamsObj = { fechaInicio, fechaFin };
+    if (empleadoId) queryParamsObj.empleadoId = empleadoId;
+    
+    const queryParams = new URLSearchParams(queryParamsObj).toString();
+    
     try {
-      const { data } = await axios.get(`${API_URL}/ordenes/resumen-date-range?${queryParams.toString()}`);
+      const { data } = await axios.get(`${API_URL}/estadisticas/resumen-date-range?${queryParams.toString()}`);
       return data;
     } catch (error) {
       throw normalizeAxiosError(error, 'Error al obtener resumen de órdenes');
