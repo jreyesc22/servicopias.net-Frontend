@@ -354,6 +354,7 @@ export default {
 
     const guardar = async () => {
       loading.value = true
+      const isEdit = !!props.item?.id
       
       try {
         // Validar formulario
@@ -374,11 +375,11 @@ export default {
         }
 
         // Guardar item
-        await guardarItem(localItem.value, !!props.item)
+        const itemGuardado = await guardarItem(localItem.value, isEdit)
 
-        const successMsg = props.item ? 'Producto actualizado correctamente' : 'Producto creado correctamente'
+        const successMsg = isEdit ? 'Producto actualizado correctamente' : 'Producto creado correctamente'
         mostrarExito(successMsg)
-        emit('guardar')
+        emit('guardar', itemGuardado)
         setTimeout(() => emit('cerrar'), 1500)
         
       } catch (error) {

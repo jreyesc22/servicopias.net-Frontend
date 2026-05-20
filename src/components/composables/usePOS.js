@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue';
 import POSService from '@/services/pos.service';
+import AuthService from '@/services/auth.service';
 
 /**
  * Composable para gestionar el carrito y lógica del POS
@@ -190,18 +191,12 @@ export function usePOS() {
       cargando.value = true;
       error.value = null;
 
-      // Obtener empleado del localStorage (CRÍTICO para el sistema)
-      // Intentar desde 'empleado' primero, luego 'user' como fallback
-      let empleadoData = localStorage.getItem('empleado');
-      if (!empleadoData) {
-        empleadoData = localStorage.getItem('user');
-      }
+      const empleado = AuthService.getCurrentEmpleado();
 
-      if (!empleadoData) {
+      if (!empleado) {
         throw new Error('No se encontró información del empleado. Por favor inicie sesión nuevamente.');
       }
 
-      const empleado = JSON.parse(empleadoData);
       if (!empleado.id) {
         throw new Error('ID de empleado no válido. Por favor inicie sesión nuevamente.');
       }
@@ -220,7 +215,7 @@ export function usePOS() {
         cliente_telefono: cliente.value.telefono,
         cliente_nit: cliente.value.nit,
         items: items,
-        empleadoId: empleado.id, // Empleado del sistema (localStorage)
+        empleadoId: empleado.id, // Empleado autenticado
         total: total.value, // Total calculado del carrito
         origen: 'pos',
         estado: 'entregado', // Las ventas POS se entregan de inmediato
@@ -269,7 +264,7 @@ export function usePOS() {
       }));
 
       // Obtener empleado del localStorage
-      const empleado = JSON.parse(localStorage.getItem('empleado') || '{}');
+      const empleado = AuthService.getCurrentEmpleado() || {};
 
       // Crear venta
       const ventaData = {
