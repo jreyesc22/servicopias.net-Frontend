@@ -113,25 +113,27 @@ class OrdenesService {
    */
   async searchByDateRange(params) {
     if (!params) params = {};
-    const { 
-      fechaInicio, 
-      fechaFin, 
-      estado, 
+    const {
+      fechaInicio,
+      fechaFin,
+      estado,
       estadoPago,
+      empleadoId,
       page = 1,
       limit = 100
     } = params;
-    
+
     const queryParams = new URLSearchParams({
       fechaInicio,
       fechaFin,
       page,
       limit
     });
-    
+
     if (estado) queryParams.append('estado', estado);
     if (estadoPago) queryParams.append('estadoPago', estadoPago);
-    
+    if (empleadoId) queryParams.append('empleadoId', empleadoId);
+
     try {
       const { data } = await axios.get(`${API_URL}/estadisticas/date-range?${queryParams.toString()}`);
       return data;
@@ -139,7 +141,6 @@ class OrdenesService {
       throw normalizeAxiosError(error, 'Error al buscar órdenes por rango de fechas');
     }
   }
-
   /**
    * Obtener resumen de órdenes por rango de fechas (solo estadísticas)
    * @param {Object} params - Parámetros de búsqueda
