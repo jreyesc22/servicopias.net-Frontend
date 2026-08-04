@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import TipoPagoService from '@/services/tipo_pago.service';
+import { enriquecerListaTiposPago } from '@/utils/tipoPagoClassification';
 
 // Estado compartido (Singleton)
 // Se definen fuera de la función para que sean compartidos por todos los componentes que usen este composable
@@ -27,11 +28,11 @@ export function useTiposPago() {
         throw new Error('Formato inesperado al cargar tipos de pago');
       }
 
-      // Normalizar IDs a número para evitar comparaciones string vs number
-      tiposPago.value = raw.map((tp) => ({
+      // Normalizar IDs y agregar clasificación operativa reutilizable en toda la UI
+      tiposPago.value = enriquecerListaTiposPago(raw.map((tp) => ({
         ...tp,
         id: Number(tp.id)
-      }));
+      })));
       initialized.value = true;
     } catch (err) {
       console.error('Error al obtener tipos de pago:', err);
