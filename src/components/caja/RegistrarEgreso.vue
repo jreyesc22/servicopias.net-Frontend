@@ -244,6 +244,7 @@
 import { useCajaAPI } from '../composables/useCajaAPI.js'
 import { useTiposPago } from '@/components/composables/useTiposPago'
 import { useEmpleados } from '@/components/composables/useEmpleados'
+import { clasificarTipoPago } from '@/utils/tipoPagoClassification'
 
 import AuthService from '@/services/auth.service'
 
@@ -306,7 +307,7 @@ export default {
         title: tipo.nombre,
         value: tipo.id,
         props: {
-          subtitle: this.getDescripcionTipo(tipo.nombre)
+          subtitle: this.getDescripcionTipo(tipo)
         }
       }))
     },
@@ -320,14 +321,17 @@ export default {
       }))
     },
     tipoSeleccionado() {
-      return (this.tiposPagoData || []).find(tipo => tipo.id === this.egreso.id_tipo_pago)
+      const tipoId = Number(this.egreso.id_tipo_pago)
+      return (this.tiposPagoData || []).find(tipo => Number(tipo.id) === tipoId)
+    },
+    clasificacionTipoPago() {
+      return clasificarTipoPago(this.tipoSeleccionado || { id: this.egreso.id_tipo_pago, nombre: '' })
     },
     esEfectivo() {
-      return this.tipoSeleccionado?.nombre?.toLowerCase().includes('efectivo')
+      return this.clasificacionTipoPago.grupo === 'efectivo'
     },
     requiereRecibo() {
-      const nombre = this.tipoSeleccionado?.nombre?.toLowerCase() || ''
-      return nombre.includes('tarjeta') || nombre.includes('transferencia')
+      return this.clasificacionTipoPago.grupo !== 'efectivo'
     },
     cambioCalculado() {
       if (!this.esEfectivo || !this.egreso.monto_recibido || !this.egreso.monto) {
@@ -475,8 +479,15 @@ export default {
     },
     
     getNombreTipoPago(id) {
-      const tipo = (this.tiposPagoData || []).find(t => t.id === id)
+      const tipoId = Number(id)
+      const tipo = (this.tiposPagoData || []).find(t => Number(t.id) === tipoId)
       return tipo ? tipo.nombre : 'No seleccionado'
+    },
+
+    getClasificacionTipoPago(id) {
+      const tipoId = Number(id)
+      const tipo = (this.tiposPagoData || []).find(t => Number(t.id) === tipoId)
+      return clasificarTipoPago(tipo || { id: tipoId, nombre: this.getNombreTipoPago(tipoId) })
     },
     
     getNombreEmpleado(id) {
@@ -485,37 +496,22 @@ export default {
     },
     
     getColorTipoPago(id) {
-      const nombre = this.getNombreTipoPago(id).toLowerCase()
-      const colores = {
-        'efectivo': 'success',
-        'tarjeta': 'primary',
-        'transferencia': 'info'
-      }
-      return Object.keys(colores).find(key => nombre.includes(key)) 
-        ? colores[Object.keys(colores).find(key => nombre.includes(key))] 
-        : 'slate-500'
+      return this.getClasificacionTipoPago(id).color || 'slate-500'
     },
     
     getIconoTipoPago(id) {
-      const nombre = this.getNombreTipoPago(id).toLowerCase()
-      const iconos = {
-        'efectivo': 'mdi-cash',
-        'tarjeta': 'mdi-credit-card',
-        'transferencia': 'mdi-bank-transfer'
-      }
-      return Object.keys(iconos).find(key => nombre.includes(key)) 
-        ? iconos[Object.keys(iconos).find(key => nombre.includes(key))] 
-        : 'mdi-help-circle'
+      return this.getClasificacionTipoPago(id).icon || 'mdi-help-circle'
     },
     
-    getDescripcionTipo(nombre) {
+    getDescripcionTipo(tipo) {
+      const nombre = typeof tipo === 'string' ? tipo : (tipo?.nombre || '')
+      const clasificacion = typeof tipo === 'object' ? (tipo?.clasificacion || clasificarTipoPago(tipo)) : clasificarTipoPago({ nombre })
       const descripciones = {
         'Efectivo': 'Pago en billetes y monedas',
-        'Tarjeta de Débito': 'Tarjeta de débito bancaria',
         'Tarjeta de Crédito': 'Tarjeta de crédito',
         'Transferencia Bancaria': 'Transferencia bancaria electrónica'
       }
-      return descripciones[nombre] || 'Método de pago'
+      return `${descripciones[nombre] || 'Método de pago'} · ${clasificacion.etiqueta}`
     },
     
     getSnackbarIcon(color) {

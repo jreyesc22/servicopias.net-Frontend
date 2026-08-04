@@ -200,6 +200,7 @@ import MovimientoModal from '../components/caja/RegistrarIngresoE.vue'
 import { useTiposPago } from '../components/composables/useTiposPago'
 import { useEmpleados } from '../components/composables/useEmpleados'
 import DashboardKPICard from '../components/Dashboard/DashboardKPICard.vue'
+import { clasificarMovimientos } from '../utils/tipoPagoClassification'
 
 const movimientos = ref([])
 const resumenDia = ref(null)
@@ -240,6 +241,14 @@ const movimientosFiltrados = computed(() => {
   return filtrados
 })
 
+const resumenClasificado = computed(() => {
+  if (resumenDia.value?.clasificacion) {
+    return resumenDia.value
+  }
+
+  return clasificarMovimientos(movimientos.value || [])
+})
+
 // Función para formatear moneda
 const formatearMoneda = (valor) => {
   return new Intl.NumberFormat('es-GT', {
@@ -263,38 +272,38 @@ const kpiCards = computed(() => {
     {
       variant: 'success',
       icon: 'mdi-trending-up',
-      title: 'INGRESOS DEL DÍA',
-      value: formatearMoneda(resumenDia.value.total_ingresos),
-      subtitle: '+12% vs ayer',
+      title: 'EFECTIVO ESPERADO EN CAJA',
+      value: formatearMoneda(resumenClasificado.value.caja_esperada || 0),
+      subtitle: 'Solo lo que afecta el cajón',
       showProgress: true,
-      progressValue: calcularProgreso(resumenDia.value.total_ingresos, 'ingreso')
+      progressValue: calcularProgreso(resumenClasificado.value.caja_esperada || 0, 'ingreso')
+    },
+    {
+      variant: 'info',
+      icon: 'mdi-bank-transfer',
+      title: 'MOVIMIENTO BANCARIO',
+      value: formatearMoneda(resumenClasificado.value.total_bancario || 0),
+      subtitle: 'Tarjetas y transferencias',
+      showProgress: true,
+      progressValue: calcularProgreso(resumenClasificado.value.total_bancario || 0, 'ingreso')
     },
     {
       variant: 'error',
       icon: 'mdi-trending-down',
       title: 'EGRESOS DEL DÍA',
-      value: formatearMoneda(resumenDia.value.total_egresos),
-      subtitle: '-8% vs ayer',
+      value: formatearMoneda(resumenClasificado.value.total_egresos),
+      subtitle: 'Salidas totales del día',
       showProgress: true,
-      progressValue: calcularProgreso(resumenDia.value.total_egresos, 'egreso')
+      progressValue: calcularProgreso(resumenClasificado.value.total_egresos, 'egreso')
     },
     {
-      variant: resumenDia.value.balance_del_dia >= 0 ? 'primary' : 'warning',
-      icon: resumenDia.value.balance_del_dia >= 0 ? 'mdi-wallet' : 'mdi-wallet-outline',
+      variant: resumenClasificado.value.balance_del_dia >= 0 ? 'primary' : 'warning',
+      icon: resumenClasificado.value.balance_del_dia >= 0 ? 'mdi-wallet' : 'mdi-wallet-outline',
       title: 'BALANCE NETO',
-      value: formatearMoneda(resumenDia.value.balance_del_dia),
-      subtitle: resumenDia.value.balance_del_dia >= 0 ? 'Superávit' : 'Déficit',
+      value: formatearMoneda(resumenClasificado.value.balance_del_dia),
+      subtitle: resumenClasificado.value.balance_del_dia >= 0 ? 'Superávit' : 'Déficit',
       showProgress: true,
-      progressValue: Math.min(Math.abs(resumenDia.value.balance_del_dia) / 10000 * 100, 100)
-    },
-    {
-      variant: 'info',
-      icon: 'mdi-swap-vertical',
-      title: 'TOTAL MOVIMIENTOS',
-      value: resumenDia.value.total_movimientos || 0,
-      subtitle: `${resumenDia.value.total_movimientos || 0} transacciones`,
-      showProgress: true,
-      progressValue: Math.min((resumenDia.value.total_movimientos || 0) * 5, 100)
+      progressValue: Math.min(Math.abs(resumenClasificado.value.balance_del_dia) / 10000 * 100, 100)
     }
   ]
 })
