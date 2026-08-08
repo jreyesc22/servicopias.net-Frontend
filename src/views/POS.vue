@@ -538,7 +538,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+ style scoped <style scoped>
 .pos-view {
   background: var(--pos-gradient-background);
   min-height: 100vh;
