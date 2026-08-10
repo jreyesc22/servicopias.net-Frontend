@@ -25,7 +25,7 @@
       <v-row v-else dense>
         <v-col
           v-for="(producto, index) in productos"
-          :key="producto.producto_id"
+          :key="producto.id || producto.producto_id || index"
           cols="12"
           sm="6"
         >
@@ -53,7 +53,7 @@
                       #{{ index + 1 }}
                     </v-chip>
                     <span class="text-body-2 font-weight-medium text-truncate" style="max-width: 150px;">
-                      {{ producto.producto_nombre }}
+                      {{ producto.nombre }}
                     </span>
                   </div>
                   <div class="text-caption text-grey">{{ producto.categoria_nombre }}</div>

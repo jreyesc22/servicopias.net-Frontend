@@ -4,6 +4,23 @@ import apiService from './api.service';
  * Servicio para operaciones del Punto de Venta (POS)
  */
 class POSService {
+  // Normalizar un registro de producto retornado por la API
+  normalizeItem(raw) {
+    if (!raw) return null;
+
+    return {
+      id: raw.id ?? raw.producto_id ?? raw.itemId ?? null,
+      nombre: raw.nombre ?? raw.producto_nombre ?? raw.producto_nombre_comercial ?? raw.nombre_producto ?? '',
+      precio_unitario: Number(raw.precio_unitario ?? raw.precio ?? raw.precio_venta ?? raw.precio_unitario_venta ?? 0),
+      imagen_url: raw.imagen_url ?? raw.imagen ?? raw.image_url ?? null,
+      categoria_nombre: raw.categoria_nombre ?? raw.categoria ?? raw.categoriaName ?? null,
+      total_vendido: raw.total_vendido ?? raw.vendidos ?? null,
+      stock: raw.stock ?? raw.cantidad_stock ?? null,
+      codigo_barras: raw.codigo_barras ?? raw.barcode ?? raw.codigo ?? null,
+      descripcion: raw.descripcion ?? raw.descripcion_corta ?? raw.description ?? null,
+      raw
+    }
+  }
   /**
    * Buscar producto por código de barras
    * @param {string} codigoBarras - Código de barras del producto
@@ -14,6 +31,16 @@ class POSService {
       const response = await apiService.get(
         `/items/buscar-codigo/${encodeURIComponent(codigoBarras)}`
       );
+      // Estandarizar formato: la API puede devolver { item: {...} } o el item directo
+      if (response && (response.item || response.producto || response.data)) {
+        const rawItem = response.item ?? response.producto ?? response.data;
+        return { ...response, item: this.normalizeItem(rawItem) };
+      }
+
+      if (response && (response.id || response.producto_id || response.itemId)) {
+        return { encontrado: true, item: this.normalizeItem(response) };
+      }
+
       return response;
     } catch (error) {
       const statusMatch = String(error?.message || '').match(/status:\s*(\d+)/i);
@@ -78,7 +105,9 @@ class POSService {
   async obtenerProductos() {
     try {
       const response = await apiService.get('/items/all');
-      return response;
+      // Normalizar respuesta: puede venir como array o como { productos: [...] }
+      const list = Array.isArray(response) ? response : (response.productos || response.items || []);
+      return list.map(p => this.normalizeItem(p));
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw error;
@@ -93,16 +122,15 @@ class POSService {
   async buscarProductos(texto) {
     try {
       const productos = await this.obtenerProductos();
-      if (!texto || texto.trim() === '') {
-        return productos;
-      }
+      if (!texto || texto.trim() === '') return productos;
 
       const textoLower = texto.toLowerCase();
-      return productos.filter(p => 
-        p.nombre.toLowerCase().includes(textoLower) ||
-        (p.descripcion && p.descripcion.toLowerCase().includes(textoLower)) ||
-        (p.codigo_barras && p.codigo_barras.includes(texto))
-      );
+      return productos.filter(p => {
+        const nombre = (p.nombre || '').toString().toLowerCase();
+        const descripcion = (p.descripcion || '').toString().toLowerCase();
+        const codigo = (p.codigo_barras || '').toString();
+        return nombre.includes(textoLower) || descripcion.includes(textoLower) || codigo.includes(texto);
+      });
     } catch (error) {
       console.error('Error al buscar productos:', error);
       throw error;
@@ -117,7 +145,8 @@ class POSService {
   async obtenerProductosMasVendidos(limit = 15) {
     try {
       const response = await apiService.get(`/estadisticas/productos-mas-vendidos?limit=${limit}`);
-      return response;
+      const productos = Array.isArray(response) ? response : (response.productos || []);
+      return { productos: productos.map(p => this.normalizeItem(p)) };
     } catch (error) {
       console.error('Error al obtener productos más vendidos:', error);
       throw error;
