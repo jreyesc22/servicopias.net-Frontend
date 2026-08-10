@@ -100,7 +100,7 @@ export function usePOS() {
       carrito.value.push({
         id: producto.id,
         nombre: producto.nombre,
-        precio: parseFloat(producto.precio),
+        precio: parseFloat(producto.precio ?? producto.precio_unitario ?? producto.precio_venta ?? 0),
         cantidad: cantidad,
         codigo_barras: producto.codigo_barras,
         stock: producto.stock,
