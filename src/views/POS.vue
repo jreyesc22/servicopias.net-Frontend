@@ -30,6 +30,17 @@
                 <span class="text-caption text-white opacity-70">Aún no hay ventas registradas en esta sesión</span>
               </template>
             </div>
+            <!-- Botón para abrir buscador de items -->
+            <v-btn class="ml-3" color="white" variant="outlined" @click="posSearchOpen = true">
+              <v-icon start size="18">mdi-magnify</v-icon>
+              Buscar item
+            </v-btn>
+
+            <!-- Botón para editar/ingresar cliente -->
+            <v-btn class="ml-2" color="white" variant="outlined" @click="posClientOpen = true">
+              <v-icon start size="18">mdi-account-edit</v-icon>
+              Cliente
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -100,6 +111,11 @@
       </template>
     </v-snackbar>
 
+    <!-- Modal reutilizable para búsqueda de items -->
+    <PosSearchModal v-model="posSearchOpen" @agregar="agregarDesdeModal" />
+    <!-- Modal para editar/ingresar cliente -->
+    <PosClientModal v-model="posClientOpen" :initial="cliente" @save="guardarClienteDesdeModal" />
+
     <!-- (Se elimina el modal de éxito: al terminar el pago retorna a nueva venta) -->
   </v-container>
 </template>
@@ -117,6 +133,8 @@ import CarritoPOS from '@/components/pos/CarritoPOS.vue';
 import AbonarOrdenPOS from '@/components/pos/AbonarOrdenPOS.vue';
 import ProductosPopulares from '@/components/pos/ProductosPopulares.vue';
 import { useTiposPago } from '@/components/composables/useTiposPago';
+import PosSearchModal from '@/components/pos/PosSearchModal.vue';
+import PosClientModal from '@/components/pos/PosClientModal.vue';
 
 // Composable del POS
 const {
@@ -190,6 +208,59 @@ const snackbar = ref({
   icon: 'mdi-information'
 });
 
+// Modal buscador reutilizable
+const posSearchOpen = ref(false);
+// Modal cliente
+const posClientOpen = ref(false);
+
+/**
+ * Manejar agregar de items desde el modal buscador.
+ * La responsabilidad de mutar el carrito la mantiene el composable `usePOS`.
+ */
+const agregarDesdeModal = (item) => {
+  try {
+    const productoFormateado = {
+      id: item.id || item.producto_id,
+      nombre: item.nombre || item.producto_nombre || item.producto_nombre_comercial || 'Sin nombre',
+      precio: parseFloat(item.precio_unitario || item.precio || item.precio_unitario_venta || 0),
+      codigo_barras: item.codigo_barras || '',
+      stock: item.stock || 0,
+      imagen_url: item.imagen_url || item.imagen || null,
+      descripcion: item.descripcion || ''
+    };
+
+    const resultado = agregarAlCarrito(productoFormateado, 1);
+    if (resultado && resultado.sumado) {
+      mostrarNotificacion(`${productoFormateado.nombre} - Cantidad: ${resultado.cantidadTotal}`, 'success', 'mdi-check');
+    } else {
+      mostrarNotificacion(`${productoFormateado.nombre} agregado al carrito`, 'success', 'mdi-check');
+    }
+    posSearchOpen.value = false;
+  } catch (err) {
+    console.error('Error al agregar desde modal:', err);
+    mostrarNotificacion('Error al agregar producto', 'error', 'mdi-alert');
+  }
+}
+
+/**
+ * Manejar guardado de cliente desde modal
+ */
+const guardarClienteDesdeModal = (clienteNuevo) => {
+  try {
+    cliente.value = {
+      nombre: clienteNuevo.nombre || 'CF',
+      telefono: clienteNuevo.telefono || '',
+      nit: clienteNuevo.nit || 'CF'
+    };
+    mostrarNotificacion('Cliente actualizado', 'success', 'mdi-account');
+  } catch (err) {
+    console.error('Error al guardar cliente:', err);
+    mostrarNotificacion('Error al guardar cliente', 'error', 'mdi-alert');
+  } finally {
+    posClientOpen.value = false;
+  }
+}
+
 /**
  * Buscar producto por código de barras
  */
@@ -244,8 +315,8 @@ const agregarProductoPopular = (producto) => {
   try {
     // Crear objeto con formato esperado por agregarAlCarrito
     const productoFormateado = {
-      id: producto.producto_id,
-      nombre: producto.producto_nombre,
+      id: producto.id,
+      nombre: producto.nombre,
       precio: parseFloat(producto.precio_unitario),
       codigo_barras: producto.codigo_barras || '',
       stock: producto.stock || 0,
@@ -256,9 +327,9 @@ const agregarProductoPopular = (producto) => {
     const resultado = agregarAlCarrito(productoFormateado, 1);
     
     if (resultado.sumado) {
-      mostrarNotificacion(`${producto.producto_nombre} - Cantidad: ${resultado.cantidadTotal}`, 'success', 'mdi-check');
+      mostrarNotificacion(`${producto.nombre} - Cantidad: ${resultado.cantidadTotal}`, 'success', 'mdi-check');
     } else {
-      mostrarNotificacion(`${producto.producto_nombre} agregado al carrito`, 'success', 'mdi-check');
+      mostrarNotificacion(`${producto.nombre} agregado al carrito`, 'success', 'mdi-check');
     }
   } catch (error) {
     console.error('Error al agregar producto:', error);
