@@ -5,15 +5,14 @@
       Top 15 Productos Más Vendidos
     </v-card-title>
     <v-card-text class="pa-3" style="max-height: 500px; overflow-y: auto;">
-      <!-- Estado de carga -->
-      <v-row v-if="cargando">
-        <v-col cols="12" class="text-center py-8">
-          <v-progress-circular indeterminate color="success" size="48" />
-          <p class="mt-3 text-caption">Cargando productos...</p>
+      <!-- Skeleton Loaders -->
+      <v-row v-if="cargando" dense>
+        <v-col v-for="n in 6" :key="n" cols="12" sm="6">
+          <pos-product-card-skeleton />
         </v-col>
       </v-row>
 
-      <!-- Estado vacío -->
+      <!-- Empty State -->
       <v-row v-else-if="productos.length === 0">
         <v-col cols="12" class="text-center py-6">
           <v-icon size="48" color="grey">mdi-package-variant</v-icon>
@@ -21,59 +20,26 @@
         </v-col>
       </v-row>
 
-      <!-- Lista de productos -->
+      <!-- Product List -->
       <v-row v-else dense>
         <v-col
-          v-for="(producto, index) in productos"
-          :key="producto.id || producto.producto_id || index"
+          v-for="producto in productos"
+          :key="producto.id || producto.producto_id"
           cols="12"
           sm="6"
         >
-          <v-card
-            elevation="1"
-            hover
-            @click="seleccionarProducto(producto)"
-            class="cursor-pointer"
+          <pos-product-card
+            :product="producto"
+            @seleccionar="seleccionarProducto"
+            @agregar="seleccionarProducto"
           >
-            <v-card-text class="pa-2">
-              <div class="d-flex align-center gap-2">
-                <!-- Avatar con imagen o icono -->
-                <v-avatar
-                  size="40"
-                  :color="producto.imagen_url ? 'transparent' : 'grey-lighten-3'"
-                >
-                  <v-img v-if="producto.imagen_url" :src="resolveMediaUrl(producto.imagen_url)" cover />
-                  <v-icon v-else size="24" color="grey">mdi-package-variant</v-icon>
-                </v-avatar>
-
-                <!-- Información del producto -->
-                <div class="flex-grow-1" style="min-width: 0;">
-                  <div class="d-flex align-center gap-1">
-                    <v-chip size="x-small" color="success" variant="flat" class="font-weight-bold">
-                      #{{ index + 1 }}
-                    </v-chip>
-                    <span class="text-body-2 font-weight-medium text-truncate" style="max-width: 150px;">
-                      {{ producto.nombre }}
-                    </span>
-                  </div>
-                  <div class="text-caption text-grey">{{ producto.categoria_nombre }}</div>
-                  <div class="d-flex align-center justify-space-between mt-1">
-                    <span class="text-success font-weight-bold">Q{{ producto.precio_unitario }}</span>
-                    <span class="text-caption">• {{ producto.total_vendido }} vendidos</span>
-                  </div>
-                </div>
-
-                <!-- Botón agregar -->
-                <v-btn
-                  icon="mdi-cart-plus"
-                  color="success"
-                  size="small"
-                  variant="tonal"
-                  @click.stop="seleccionarProducto(producto)"
-                />
+            <template #info="{ product }">
+              <div class="d-flex align-center justify-space-between" style="width: 100%;">
+                <span class="text-success font-weight-bold">Q{{ product.precio_unitario }}</span>
+                <span class="text-caption">• {{ product.total_vendido }} vendidos</span>
               </div>
-            </v-card-text>
-          </v-card>
+            </template>
+          </pos-product-card>
         </v-col>
       </v-row>
     </v-card-text>
@@ -81,15 +47,10 @@
 </template>
 
 <script setup>
-/**
- * Componente para mostrar los productos más vendidos (Top 15)
- * Permite seleccionar productos para agregarlos al carrito
- */
+import PosProductCard from './PosProductCard.vue';
+import PosProductCardSkeleton from './PosProductCardSkeleton.vue';
 
-import { resolveMediaUrl } from '@/utils/mediaUrl'
-
-// Props
-const props = defineProps({
+defineProps({
   productos: {
     type: Array,
     default: () => []
@@ -100,67 +61,30 @@ const props = defineProps({
   }
 });
 
-// Emits
 const emit = defineEmits(['producto-seleccionado']);
 
-/**
- * Emitir evento cuando se selecciona un producto
- */
 const seleccionarProducto = (producto) => {
   emit('producto-seleccionado', producto);
 };
 </script>
 
 <style scoped>
-.cursor-pointer {
-  cursor: pointer;
-  transition: all var(--transition-base);
-  border-radius: var(--border-radius);
-}
-
-.cursor-pointer:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-light);
-}
-
-:deep(.v-card-text) {
-  transition: all var(--transition-fast);
-}
-
-:deep(.v-avatar) {
-  box-shadow: var(--shadow-xs);
-  transition: all var(--transition-fast);
-}
-
-:deep(.v-chip) {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-:deep(.v-btn) {
-  transition: all var(--transition-fast);
-}
-
-:deep(.v-btn:hover) {
-  transform: scale(1.15);
-  box-shadow: var(--shadow-sm);
-}
-
 /* Scrollbar personalizado */
 :deep(.v-card-text::-webkit-scrollbar) {
   width: 8px;
 }
 
 :deep(.v-card-text::-webkit-scrollbar-track) {
-  background: var(--background-light);
-  border-radius: var(--border-radius-sm);
+  background: rgba(0,0,0,0.05);
+  border-radius: 8px;
 }
 
 :deep(.v-card-text::-webkit-scrollbar-thumb) {
-  background: var(--success-color);
-  border-radius: var(--border-radius-sm);
+  background: #c1c1c1;
+  border-radius: 8px;
 }
 
 :deep(.v-card-text::-webkit-scrollbar-thumb:hover) {
-  background: var(--secondary-dark);
+  background: #a8a8a8;
 }
 </style>
