@@ -63,7 +63,11 @@ class ApiService {
 
   // Métodos HTTP específicos
   async get(endpoint, params = {}) {
-    const queryString = new URLSearchParams(params).toString()
+    // Limpiar params: quitar valores undefined o null para evitar 'key=undefined'
+    const cleanParams = Object.fromEntries(
+      Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null)
+    )
+    const queryString = new URLSearchParams(cleanParams).toString()
     const url = queryString ? `${endpoint}?${queryString}` : endpoint
     
     return this.request(url, {
