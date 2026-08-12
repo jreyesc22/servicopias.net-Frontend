@@ -1,11 +1,16 @@
 <template>
-  <v-dialog :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" max-width="600">
+  <v-dialog
+    :model-value="modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
+    max-width="600"
+  >
     <v-card v-if="orden">
       <v-card-title class="bg-primary text-white d-flex align-center">
         Detalle Orden #ORD-{{ String(orden.id).padStart(5, '0') }}
-        <v-spacer></v-spacer>
-        <v-btn icon="mdi-close" variant="text" @click="closeDialog" color="white"></v-btn>
+        <v-spacer />
+        <v-btn icon="mdi-close" variant="text" @click="closeDialog" color="white" />
       </v-card-title>
+
       <v-card-text class="pt-4">
         <v-row>
           <v-col cols="6">
@@ -17,7 +22,9 @@
             <div class="text-body-1">{{ formatDate(orden.fecha) }}</div>
           </v-col>
         </v-row>
-        <v-divider class="my-4"></v-divider>
+
+        <v-divider class="my-4" />
+
         <h3 class="text-h6 mb-3">Productos</h3>
         <v-table density="compact">
           <thead>
@@ -44,8 +51,9 @@
           </tfoot>
         </v-table>
       </v-card-text>
+
       <v-card-actions>
-        <v-spacer></v-spacer>
+        <v-spacer />
         <v-btn color="primary" variant="text" @click="closeDialog">Cerrar</v-btn>
       </v-card-actions>
     </v-card>
@@ -53,35 +61,17 @@
 </template>
 
 <script setup>
+import { useRegistrosFormatters } from '@/components/composables/useRegistrosFormatters';
+
 const props = defineProps({
-  modelValue: { // for v-model
-    type: Boolean,
-    default: false
-  },
-  orden: {
-    type: Object,
-    default: null
-  }
+  modelValue: { type: Boolean, default: false },
+  orden:      { type: Object,  default: null  },
 });
 
 const emit = defineEmits(['update:modelValue']);
 
-const closeDialog = () => {
-  emit('update:modelValue', false);
-};
+const closeDialog = () => emit('update:modelValue', false);
 
-// Helper functions copied for encapsulation
-const formatMoney = (val) => {
-  const num = parseFloat(val) || 0;
-  return num.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const formatDate = (val) => {
-  if (!val) return '';
-  const date = new Date(val);
-  return date.toLocaleString('es-GT', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-};
+// Formatters centralizados — eliminado código duplicado local
+const { formatMoney, formatDate } = useRegistrosFormatters();
 </script>

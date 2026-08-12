@@ -12,35 +12,52 @@
             </div>
             <v-spacer />
             <!-- Información de Última Venta -->
-            <div class="d-flex gap-2 align-center">
+            <div class="d-flex align-center px-3 py-1 rounded-pill ml-auto" style="background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.1);">
               <template v-if="ultimaVenta.ordenId">
-                <span class="text-caption text-white mr-2 text-uppercase font-weight-bold">Última Venta:</span>
-                <v-chip color="white" variant="outlined" size="small">
-                  <v-icon start size="small">mdi-receipt</v-icon>
+                <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
+                <span class="text-caption text-white mr-3 font-weight-medium">Venta Anterior:</span>
+                <v-chip color="white" variant="text" size="small" class="px-1 mr-2">
+                  <v-icon start size="small">mdi-receipt-text-outline</v-icon>
                   #{{ ultimaVenta.ordenId }}
                 </v-chip>
-                <v-chip color="success" variant="flat" size="small" class="font-weight-bold">
-                  Total: Q{{ formatMoney(ultimaVenta.total) }}
+                <v-chip color="success" variant="elevated" size="small" class="font-weight-bold elevation-1 mr-2">
+                  Q{{ formatMoney(ultimaVenta.total) }}
                 </v-chip>
-                <v-chip v-if="ultimaVenta.cambio !== undefined && ultimaVenta.cambio !== null" color="warning" variant="flat" size="small" class="font-weight-bold text-black">
-                  Cambio: Q{{ formatMoney(ultimaVenta.cambio) }}
+                <v-chip v-if="ultimaVenta.cambio !== undefined && ultimaVenta.cambio !== null" color="warning" variant="elevated" size="small" class="font-weight-bold text-black elevation-1">
+                  <v-icon start size="small" class="mr-1">mdi-cash-refund</v-icon>
+                  Q{{ formatMoney(ultimaVenta.cambio) }}
                 </v-chip>
               </template>
               <template v-else>
-                <span class="text-caption text-white opacity-70">Aún no hay ventas registradas en esta sesión</span>
+                <v-icon size="18" color="white" class="opacity-70 mr-2">mdi-history</v-icon>
+                <span class="text-caption text-white opacity-70">Sin ventas en esta sesión</span>
               </template>
             </div>
-            <!-- Botón para abrir buscador de items -->
-            <v-btn class="ml-3" color="white" variant="outlined" @click="posSearchOpen = true">
-              <v-icon start size="18">mdi-magnify</v-icon>
-              Buscar item
-            </v-btn>
 
-            <!-- Botón para editar/ingresar cliente -->
-            <v-btn class="ml-2" color="white" variant="outlined" @click="posClientOpen = true">
-              <v-icon start size="18">mdi-account-edit</v-icon>
-              Cliente
-            </v-btn>
+            <div class="d-flex ml-4" style="gap: 12px;">
+              <!-- Botón buscador -->
+              <v-btn 
+                color="white" 
+                variant="elevated" 
+                class="text-primary font-weight-bold" 
+                @click="posSearchOpen = true"
+                elevation="2"
+              >
+                <v-icon start size="20">mdi-text-search</v-icon>
+                Buscar Ítem
+              </v-btn>
+
+              <!-- Botón cliente -->
+              <v-btn 
+                :color="cliente.nombre !== 'CF' ? 'info' : 'white'" 
+                :variant="cliente.nombre !== 'CF' ? 'elevated' : 'outlined'" 
+                :class="cliente.nombre !== 'CF' ? 'font-weight-bold text-white' : ''"
+                @click="posClientOpen = true"
+              >
+                <v-icon start size="20">{{ cliente.nombre !== 'CF' ? 'mdi-account-check' : 'mdi-account-plus' }}</v-icon>
+                {{ cliente.nombre !== 'CF' ? cliente.nombre.split(' ')[0] : 'Añadir Cliente' }}
+              </v-btn>
+            </div>
           </v-card-text>
         </v-card>
       </v-col>

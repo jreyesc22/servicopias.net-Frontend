@@ -1,7 +1,7 @@
 <template>
-  <v-card elevation="2">
-    <v-card-title class="bg-success text-white">
-      <v-icon class="mr-2">mdi-star</v-icon>
+  <v-card elevation="2" class="populares-card">
+    <v-card-title class="bg-gradient-success text-white d-flex align-center">
+      <v-icon class="mr-2" color="white">mdi-star</v-icon>
       Top 15 Productos Más Vendidos
     </v-card-title>
     <v-card-text class="pa-3" style="max-height: 500px; overflow-y: auto;">
@@ -69,22 +69,27 @@ const seleccionarProducto = (producto) => {
 </script>
 
 <style scoped>
-/* Scrollbar personalizado */
+.populares-card {
+  border-radius: var(--border-radius-lg) !important;
+}
+
+/* Scrollbar usando variables del design-system */
 :deep(.v-card-text::-webkit-scrollbar) {
   width: 8px;
 }
 
 :deep(.v-card-text::-webkit-scrollbar-track) {
-  background: rgba(0,0,0,0.05);
-  border-radius: 8px;
+  background: var(--background-light);
+  border-radius: var(--border-radius-sm);
 }
 
 :deep(.v-card-text::-webkit-scrollbar-thumb) {
-  background: #c1c1c1;
-  border-radius: 8px;
+  background: var(--primary-light);
+  border-radius: var(--border-radius-sm);
+  transition: background var(--transition-base);
 }
 
 :deep(.v-card-text::-webkit-scrollbar-thumb:hover) {
-  background: #a8a8a8;
+  background: var(--primary-color);
 }
 </style>

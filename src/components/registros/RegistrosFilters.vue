@@ -1,6 +1,7 @@
 <template>
   <v-card class="mb-6 pa-4 bg-grey-lighten-4" elevation="0">
     <v-row align="center">
+      <!-- Filtro específico: Empleado (solo ventas_usuario) -->
       <v-col cols="12" md="4" v-if="vistaActual === 'ventas_usuario'">
         <v-select
           :model-value="empleado"
@@ -13,24 +14,11 @@
           density="compact"
           hide-details
           clearable
-        ></v-select>
+        />
       </v-col>
-       <v-col cols="12" md="4" v-if="vistaActual === 'ingresos_categoria'">
-        <v-select
-          :model-value="categoriasSeleccionadas"
-          @update:model-value="emit('update:categoriasSeleccionadas', $event)"
-          :items="categorias"
-          item-title="nombre"
-          item-value="id"
-          label="Seleccionar Categorías"
-          variant="outlined"
-          density="compact"
-          hide-details
-          multiple
-          clearable
-        ></v-select>
-      </v-col>
-      <v-col cols="12" :md="vistaActual === 'ventas_usuario' ? 4 : 6">
+
+      <!-- Selector de Periodo — siempre visible -->
+      <v-col cols="12" :md="hasExtraFilter ? 4 : 6">
         <v-select
           :model-value="periodo"
           @update:model-value="emit('update:periodo', $event)"
@@ -41,9 +29,11 @@
           variant="outlined"
           density="compact"
           hide-details
-        ></v-select>
+        />
       </v-col>
-      <v-col cols="12" :md="vistaActual === 'ventas_usuario' ? 4 : 6" v-if="periodo === 'custom'">
+
+      <!-- Fechas personalizadas — solo cuando periodo === 'custom' -->
+      <v-col cols="12" :md="hasExtraFilter ? 4 : 6" v-if="periodo === 'custom'">
         <div class="d-flex" style="gap: 8px;">
           <v-text-field
             :model-value="fechaInicio"
@@ -53,7 +43,7 @@
             variant="outlined"
             density="compact"
             hide-details
-          ></v-text-field>
+          />
           <v-text-field
             :model-value="fechaFin"
             @update:model-value="emit('update:fechaFin', $event)"
@@ -62,53 +52,39 @@
             variant="outlined"
             density="compact"
             hide-details
-          ></v-text-field>
+          />
         </div>
       </v-col>
-      <v-col cols="12" md="4" v-else-if="vistaActual === 'ventas_usuario' || vistaActual === 'ingresos_categoria'">
-         <v-btn color="primary" block @click="emit('buscar')" :loading="loading" height="40">
-           Buscar
-         </v-btn>
-      </v-col>
-      <v-col cols="12" v-if="periodo === 'custom' || vistaActual === 'reporte_general'">
-         <v-btn color="primary" block @click="emit('buscar')" :loading="loading" height="40">
-           Buscar
-         </v-btn>
+
+      <!-- Botón Buscar — único, siempre en su propia fila -->
+      <v-col cols="12">
+        <v-btn
+          color="primary"
+          block
+          height="40"
+          :loading="loading"
+          prepend-icon="mdi-magnify"
+          @click="emit('buscar')"
+        >
+          Buscar
+        </v-btn>
       </v-col>
     </v-row>
   </v-card>
 </template>
 
 <script setup>
-defineProps({
-  vistaActual: {
-    type: String,
-    required: true
-  },
-  empleados: {
-    type: Array,
-    default: () => []
-  },
-  categorias: {
-    type: Array,
-    default: () => []
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  },
-  opcionesPeriodo: {
-    type: Array,
-    required: true
-  },
-  empleado: [String, Number],
-  periodo: String,
-  fechaInicio: String,
-  fechaFin: String,
-  categoriasSeleccionadas: {
-    type: Array,
-    default: () => []
-  }
+import { computed } from 'vue';
+
+const props = defineProps({
+  vistaActual:     { type: String,  required: true    },
+  empleados:       { type: Array,   default: () => [] },
+  loading:         { type: Boolean, default: false    },
+  opcionesPeriodo: { type: Array,   required: true    },
+  empleado:        [String, Number],
+  periodo:         String,
+  fechaInicio:     String,
+  fechaFin:        String,
 });
 
 const emit = defineEmits([
@@ -116,7 +92,11 @@ const emit = defineEmits([
   'update:periodo',
   'update:fechaInicio',
   'update:fechaFin',
-  'update:categoriasSeleccionadas',
-  'buscar'
+  'buscar',
 ]);
+
+// Columna de periodo: más ancha cuando NO hay filtro extra (empleado)
+const hasExtraFilter = computed(() =>
+  props.vistaActual === 'ventas_usuario'
+);
 </script>

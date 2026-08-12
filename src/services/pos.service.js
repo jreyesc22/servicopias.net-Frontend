@@ -8,12 +8,24 @@ class POSService {
   normalizeItem(raw) {
     if (!raw) return null;
 
+    // Extraer el nombre de la categoría, previniendo que sea un objeto
+    let catNombre = null;
+    if (raw.categoria_nombre) {
+      catNombre = raw.categoria_nombre;
+    } else if (raw.categoria && typeof raw.categoria === 'object') {
+      catNombre = raw.categoria.nombre;
+    } else if (raw.categoria) {
+      catNombre = String(raw.categoria);
+    } else if (raw.categoriaName) {
+      catNombre = raw.categoriaName;
+    }
+
     return {
       id: raw.id ?? raw.producto_id ?? raw.itemId ?? null,
       nombre: raw.nombre ?? raw.producto_nombre ?? raw.producto_nombre_comercial ?? raw.nombre_producto ?? '',
       precio_unitario: Number(raw.precio_unitario ?? raw.precio ?? raw.precio_venta ?? raw.precio_unitario_venta ?? 0),
       imagen_url: raw.imagen_url ?? raw.imagen ?? raw.image_url ?? null,
-      categoria_nombre: raw.categoria_nombre ?? raw.categoria ?? raw.categoriaName ?? null,
+      categoria_nombre: catNombre,
       total_vendido: raw.total_vendido ?? raw.vendidos ?? null,
       stock: raw.stock ?? raw.cantidad_stock ?? null,
       codigo_barras: raw.codigo_barras ?? raw.barcode ?? raw.codigo ?? null,

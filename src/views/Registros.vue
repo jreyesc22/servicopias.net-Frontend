@@ -2,8 +2,8 @@
   <v-container class="registros-view" fluid>
     <!-- Vista de Bienvenida -->
     <v-fade-transition mode="out-in">
-      <RegistrosWelcome 
-        v-if="vistaActual === 'inicio'" 
+      <RegistrosWelcome
+        v-if="vistaActual === 'inicio'"
         @cambiarVista="cambiarVista"
       />
     </v-fade-transition>
@@ -12,35 +12,47 @@
     <v-fade-transition mode="out-in">
       <div v-if="vistaActual !== 'inicio'" :key="vistaActual">
         <v-card class="report-card" elevation="2">
+          <!-- Header de la tarjeta con título dinámico -->
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-3" :color="getIconColor(vistaActual)">
               {{ getIcon(vistaActual) }}
             </v-icon>
             <span>{{ getTitle(vistaActual) }}</span>
             <v-spacer />
+            <v-chip
+              v-if="periodoLabel"
+              size="small"
+              variant="tonal"
+              color="primary"
+              class="mr-2"
+              prepend-icon="mdi-calendar-range"
+            >
+              {{ periodoLabel }}
+            </v-chip>
             <v-btn icon="mdi-close" variant="text" @click="cambiarVista('inicio')" />
           </v-card-title>
-          
+
           <v-card-text>
-            <!-- Barra de Filtros -->
+            <!-- Barra de Filtros (compartida para las 3 vistas) -->
             <RegistrosFilters
               :vista-actual="vistaActual"
               :empleados="empleados"
-              :categorias="categorias"
               :loading="loading"
               :opciones-periodo="opcionesPeriodo"
               v-model:empleado="empleadoSeleccionado"
               v-model:periodo="periodoSeleccionado"
               v-model:fecha-inicio="fechaInicio"
               v-model:fecha-fin="fechaFin"
-              v-model:categoriasSeleccionadas="categoriasSeleccionadas"
               @buscar="cargarReporte"
             />
 
-            <!-- KPIs -->
-            <RegistrosKPIs v-if="resumen && (vistaActual === 'reporte_general' || vistaActual === 'ventas_usuario')" :kpi-cards="kpiCards" />
+            <!-- KPIs — aparecen en las 3 vistas cuando hay datos -->
+            <RegistrosKPIs
+              v-if="kpiCards.length > 0"
+              :kpi-cards="kpiCards"
+            />
 
-            <!-- Tabla de Detalles -->
+            <!-- Tabla: Reporte General y Ventas por Usuario -->
             <RegistrosTable
               v-if="resumen && (vistaActual === 'reporte_general' || vistaActual === 'ventas_usuario')"
               :headers="headers"
@@ -49,17 +61,18 @@
               @ver-detalle="verDetalle"
             />
 
-            <!-- Tabla de Ingresos por Categoría -->
+            <!-- Tabla: Ingresos por Categoría (estandarizada con buscador) -->
             <RegistrosIngresosCategoria
               v-if="vistaActual === 'ingresos_categoria'"
               :items="ingresosPorCategoria"
+              :loading="loading"
             />
           </v-card-text>
         </v-card>
       </div>
     </v-fade-transition>
 
-    <!-- Modal Detalle -->
+    <!-- Modal de Detalle de Orden -->
     <RegistrosDetailModal
       v-model="dialogDetalle"
       :orden="ordenSeleccionada"
@@ -69,62 +82,120 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import OrdenesService from '@/services/ordenes.service';
-import ApiService from '@/services/api.service';
-import EmpleadoService from '@/services/empleado.service';
-import EstadisticasService from '@/services/estadisticas.service';
-import { useCategorias } from '@/components/composables/useCategorias';
 
-// Importar nuevos componentes
-import RegistrosWelcome from '@/components/registros/RegistrosWelcome.vue';
-import RegistrosFilters from '@/components/registros/RegistrosFilters.vue';
-import RegistrosKPIs from '@/components/registros/RegistrosKPIs.vue';
-import RegistrosTable from '@/components/registros/RegistrosTable.vue';
-import RegistrosDetailModal from '@/components/registros/RegistrosDetailModal.vue';
+// Servicios
+import ApiService       from '@/services/api.service';
+import EmpleadoService  from '@/services/empleado.service';
+import EstadisticasService from '@/services/estadisticas.service';
+
+// Composables
+import { useRegistrosFiltros } from '@/components/composables/useRegistrosFiltros';
+
+// Componentes del módulo
+import RegistrosWelcome          from '@/components/registros/RegistrosWelcome.vue';
+import RegistrosFilters          from '@/components/registros/RegistrosFilters.vue';
+import RegistrosKPIs             from '@/components/registros/RegistrosKPIs.vue';
+import RegistrosTable            from '@/components/registros/RegistrosTable.vue';
+import RegistrosDetailModal      from '@/components/registros/RegistrosDetailModal.vue';
 import RegistrosIngresosCategoria from '@/components/registros/RegistrosIngresosCategoria.vue';
 
-// --- Estado Centralizado ---
+// ─── Composables en raíz del setup ───────────────────────────────────────────
+
+// Lógica de periodo y fechas extraída del orquestador
+const {
+  opcionesPeriodo,
+  periodoSeleccionado,
+  fechaInicio,
+  fechaFin,
+  periodoLabel,
+  establecerFechasPorPeriodo,
+} = useRegistrosFiltros();
+
+// ─── Estado Centralizado ──────────────────────────────────────────────────────
+
 const vistaActual = ref('inicio');
-const loading = ref(false);
+const loading     = ref(false);
 
-// Estado para Filtros
-const empleados = ref([]);
+// Filtros
+const empleados            = ref([]);
 const empleadoSeleccionado = ref(null);
-// categorias vendrá del composable (cache compartida)
-const categorias = ref([]);
-const categoriasSeleccionadas = ref([]);
-const opcionesPeriodo = [
-  { label: 'Hoy', value: 'hoy' },
-  { label: 'Esta Semana', value: 'semana' },
-  { label: 'Este Mes', value: 'mes' },
-  { label: 'Personalizado', value: 'custom' },
-];
-const periodoSeleccionado = ref('hoy');
-const fechaInicio = ref('');
-const fechaFin = ref('');
 
-// Estado para Datos
-const ordenes = ref([]);
-const resumen = ref(null);
+// Datos de reporte
+const ordenes              = ref([]);
+const resumen              = ref(null);
 const ingresosPorCategoria = ref([]);
 
-// Estado para UI
-const dialogDetalle = ref(false);
+// UI
+const dialogDetalle    = ref(false);
 const ordenSeleccionada = ref(null);
 
-// --- Headers para la Tabla ---
+// ─── Headers de tabla ─────────────────────────────────────────────────────────
+
 const headers = [
-  { title: 'Fecha', key: 'fecha' },
-  { title: 'Folio', key: 'id' },
-  { title: 'Cliente', key: 'cliente_nombre' },
-  { title: 'Empleado', key: 'empleado_nombre' },
-  { title: 'Estado Pago', key: 'estado_pago' },
-  { title: 'Total', key: 'total', align: 'end' },
-  { title: 'Acciones', key: 'acciones', align: 'center', sortable: false },
+  { title: 'Fecha',       key: 'fecha'          },
+  { title: 'Folio',       key: 'id'             },
+  { title: 'Cliente',     key: 'cliente_nombre'  },
+  { title: 'Empleado',    key: 'empleado_nombre' },
+  { title: 'Estado Pago', key: 'estado_pago'     },
+  { title: 'Total',       key: 'total',      align: 'end'    },
+  { title: 'Acciones',    key: 'acciones',   align: 'center', sortable: false },
 ];
 
-// --- Propiedades Computadas ---
+// ─── KPIs unificados para las 3 vistas ───────────────────────────────────────
+
 const kpiCards = computed(() => {
+  // Vista: Ingresos por Categoría
+  if (vistaActual.value === 'ingresos_categoria') {
+    if (!ingresosPorCategoria.value.length) return [];
+
+    // La nueva estructura es: [{ categoria_nombre, total_categoria, ingresos_categoria, productos: [] }]
+    const totalIngresos = ingresosPorCategoria.value.reduce(
+      (sum, cat) => sum + parseFloat(cat.ingresos_categoria || 0), 0
+    );
+    const totalUnidades = ingresosPorCategoria.value.reduce(
+      (sum, cat) => sum + parseInt(cat.total_categoria || 0), 0
+    );
+    const totalProductosDistintos = ingresosPorCategoria.value.reduce(
+      (sum, cat) => sum + (cat.productos?.length || 0), 0
+    );
+    return [
+      {
+        title: 'Categorías con Ventas',
+        value: ingresosPorCategoria.value.length,
+        subtitle: 'Con ítems vendidos',
+        variant: 'info',
+        icon: 'mdi-shape',
+        formatAsCurrency: false,
+      },
+      {
+        title: 'Total Ingresos',
+        value: totalIngresos,
+        subtitle: 'Suma de subtotales',
+        variant: 'success',
+        icon: 'mdi-cash-multiple',
+        formatAsCurrency: true,
+        currencySymbol: 'Q',
+      },
+      {
+        title: 'Unidades Vendidas',
+        value: totalUnidades,
+        subtitle: 'Ítems despachados',
+        variant: 'primary',
+        icon: 'mdi-package-variant-closed',
+        formatAsCurrency: false,
+      },
+      {
+        title: 'Productos Distintos',
+        value: totalProductosDistintos,
+        subtitle: 'Referencias vendidas',
+        variant: 'warning',
+        icon: 'mdi-tag-multiple',
+        formatAsCurrency: false,
+      },
+    ];
+  }
+
+  // Vistas: Reporte General y Ventas por Usuario
   if (!resumen.value) return [];
   return [
     {
@@ -134,7 +205,7 @@ const kpiCards = computed(() => {
       variant: 'primary',
       icon: 'mdi-cash-multiple',
       formatAsCurrency: true,
-      currencySymbol: 'Q'
+      currencySymbol: 'Q',
     },
     {
       title: 'Órdenes Procesadas',
@@ -151,7 +222,7 @@ const kpiCards = computed(() => {
       variant: 'success',
       icon: 'mdi-chart-line',
       formatAsCurrency: true,
-      currencySymbol: 'Q'
+      currencySymbol: 'Q',
     },
     {
       title: 'Total Abonado',
@@ -160,22 +231,24 @@ const kpiCards = computed(() => {
       variant: 'warning',
       icon: 'mdi-wallet-outline',
       formatAsCurrency: true,
-      currencySymbol: 'Q'
-    }
+      currencySymbol: 'Q',
+    },
   ];
 });
 
-// --- Ciclo de Vida y Watchers ---
+// ─── Ciclo de Vida ────────────────────────────────────────────────────────────
+
 onMounted(async () => {
   await cargarEmpleados();
-  await cargarCategorias();
   establecerFechasPorPeriodo();
 });
+
+// ─── Watchers ─────────────────────────────────────────────────────────────────
 
 watch(periodoSeleccionado, (newVal) => {
   if (newVal !== 'custom') {
     establecerFechasPorPeriodo();
-    cargarReporte();
+    if (vistaActual.value !== 'inicio') cargarReporte();
   }
 });
 
@@ -185,13 +258,16 @@ watch(empleadoSeleccionado, () => {
   }
 });
 
-// --- Métodos ---
+// ─── Métodos ──────────────────────────────────────────────────────────────────
+
 function cambiarVista(vista) {
   vistaActual.value = vista;
+
+  // Limpiar filtro de empleado al cambiar a vistas que no lo usan
   if (vista === 'reporte_general' || vista === 'ingresos_categoria') {
     empleadoSeleccionado.value = null;
   }
-  
+
   if (vista !== 'inicio') {
     establecerFechasPorPeriodo();
     cargarReporte();
@@ -200,41 +276,10 @@ function cambiarVista(vista) {
 
 const cargarEmpleados = async () => {
   try {
-    const data = await EmpleadoService.getAll();
+    const data     = await EmpleadoService.getAll();
     empleados.value = Array.isArray(data) ? data : (data?.empleados || []);
   } catch (error) {
-    console.error('Error al cargar empleados', error);
-  }
-};
-
-const cargarCategorias = async () => {
-  try {
-    const { fetchCategorias } = useCategorias();
-    const data = await fetchCategorias();
-    categorias.value = Array.isArray(data) ? data : (data?.categorias || []);
-  } catch (error) {
-    console.error('Error al cargar categorias', error);
-  }
-};
-
-const establecerFechasPorPeriodo = () => {
-  const hoy = new Date();
-  const formatIso = (d) => d.toISOString().split('T')[0];
-
-  if (periodoSeleccionado.value === 'hoy') {
-    fechaInicio.value = formatIso(hoy);
-    fechaFin.value = formatIso(hoy);
-  } else if (periodoSeleccionado.value === 'semana') {
-    const inicioSemana = new Date(hoy);
-    const dayOfWeek = hoy.getDay();
-    const diff = hoy.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Lunes
-    inicioSemana.setDate(diff);
-    fechaInicio.value = formatIso(inicioSemana);
-    fechaFin.value = formatIso(hoy);
-  } else if (periodoSeleccionado.value === 'mes') {
-    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    fechaInicio.value = formatIso(inicioMes);
-    fechaFin.value = formatIso(hoy);
+    console.error('Error al cargar empleados:', error);
   }
 };
 
@@ -252,28 +297,32 @@ const cargarReporteGeneral = async () => {
   try {
     const params = {
       fechaInicio: fechaInicio.value,
-      fechaFin: fechaFin.value,
-      empleadoId: empleadoSeleccionado.value || undefined,
-      page: 1,
-      limit: 1000
+      fechaFin:    fechaFin.value,
+      empleadoId:  empleadoSeleccionado.value || undefined,
+      page:        1,
+      limit:       1000,
     };
 
-    // Usar ApiService centralizado para endpoints de estadísticas
     const data = await ApiService.getOrdenesByDateRange(params);
 
-    // Manejar formas distintas de respuesta: { ordenes: [] } o { rows: [] }
-    const filas = Array.isArray(data.ordenes) ? data.ordenes : (Array.isArray(data.rows) ? data.rows : []);
+    // Normalizar respuesta: puede venir como { ordenes: [] } o { rows: [] }
+    const filas = Array.isArray(data.ordenes)
+      ? data.ordenes
+      : (Array.isArray(data.rows) ? data.rows : []);
 
     ordenes.value = filas.map(ord => ({
       ...ord,
-      empleado_nombre: (ord && ord.empleado && ord.empleado.nombre) ? ord.empleado.nombre : (ord.empleado_nombre || 'No asignado')
+      empleado_nombre:
+        ord?.empleado?.nombre
+          ? ord.empleado.nombre
+          : (ord.empleado_nombre || 'No asignado'),
     }));
 
-    // Estadísticas pueden venir en data.estadisticas o data.estadisticas
-    resumen.value = data.estadisticas || data.estadisticas || null;
+    // Normalizar respuesta de estadísticas (fix: ambos lados eran idénticos)
+    resumen.value = data.estadisticas || data.resumen || null;
 
   } catch (error) {
-    console.error('Error al cargar reporte general', error);
+    console.error('Error al cargar reporte general:', error);
     ordenes.value = [];
     resumen.value = null;
   } finally {
@@ -285,11 +334,15 @@ const cargarReporteIngresosCategoria = async () => {
   if (!fechaInicio.value || !fechaFin.value) return;
   loading.value = true;
   try {
-    const categoriaIds = categoriasSeleccionadas.value.join(',');
-    const data = await EstadisticasService.getIngresosPorCategoria(fechaInicio.value, fechaFin.value, categoriaIds);
-    ingresosPorCategoria.value = data.ingresosPorCategoria || [];
+    // Llama a productos-por-categoria: devuelve cómo se distribuyeron
+    // las ventas de ítems (DetalleOrden) por categoría en el período.
+    const data = await EstadisticasService.getProductosPorCategoria(
+      fechaInicio.value,
+      fechaFin.value
+    );
+    ingresosPorCategoria.value = data.categorias || [];
   } catch (error) {
-    console.error('Error al cargar reporte de ingresos por categoría', error);
+    console.error('Error al cargar reporte de ingresos por categoría:', error);
     ingresosPorCategoria.value = [];
   } finally {
     loading.value = false;
@@ -298,55 +351,38 @@ const cargarReporteIngresosCategoria = async () => {
 
 const verDetalle = (item) => {
   ordenSeleccionada.value = item;
-  dialogDetalle.value = true;
+  dialogDetalle.value     = true;
 };
 
-const getTitle = (vista) => {
-  const titles = {
-    ventas_usuario: 'Reporte de Ventas por Empleado',
-    reporte_general: 'Reporte General',
-    ingresos_categoria: 'Reporte de Ingresos por Categoría'
-  };
-  return titles[vista] || 'Reporte';
-};
+// ─── Helpers de vista ────────────────────────────────────────────────────────
 
-const getIcon = (vista) => {
-  const icons = {
-    ventas_usuario: 'mdi-account-cash',
-    reporte_general: 'mdi-chart-line',
-    ingresos_categoria: 'mdi-shape'
-  };
-  return icons[vista] || 'mdi-chart-bar';
-};
+const getTitle = (vista) => ({
+  ventas_usuario:    'Reporte de Ventas por Empleado',
+  reporte_general:   'Reporte General',
+  ingresos_categoria:'Reporte de Ingresos por Categoría',
+}[vista] || 'Reporte');
 
-const getIconColor = (vista) => {
-  const colors = {
-    ventas_usuario: 'primary',
-    reporte_general: 'success',
-    ingresos_categoria: 'purple'
-  };
-  return colors[vista] || 'grey';
-};
+const getIcon = (vista) => ({
+  ventas_usuario:    'mdi-account-cash',
+  reporte_general:   'mdi-chart-line',
+  ingresos_categoria:'mdi-shape',
+}[vista] || 'mdi-chart-bar');
+
+const getIconColor = (vista) => ({
+  ventas_usuario:    'primary',
+  reporte_general:   'success',
+  ingresos_categoria:'purple',
+}[vista] || 'grey');
 </script>
 
 <style scoped>
 .registros-view {
   padding: 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--pos-gradient-background); /* usa variable del design-system global */
   min-height: 100vh;
 }
 
 .report-card {
-  border-radius: 12px;
-}
-
-.v-fade-transition-enter-active,
-.v-fade-transition-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.v-fade-transition-enter-from,
-.v-fade-transition-leave-to {
-  opacity: 0;
+  border-radius: var(--border-radius-lg);
 }
 </style>
