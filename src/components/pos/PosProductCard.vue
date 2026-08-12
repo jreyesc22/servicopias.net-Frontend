@@ -66,12 +66,13 @@ const formatMoney = (value) => parseFloat(value || 0).toFixed(2);
 <style scoped>
 .product-card {
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  border-radius: 8px;
+  border-radius: var(--border-radius) !important;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
 }
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-hover);
 }
 </style>
