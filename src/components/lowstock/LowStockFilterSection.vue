@@ -1,74 +1,98 @@
 <template>
-  <v-card-subtitle class="bg-surface-elevated pa-4">
+  <!-- Sección de filtros — usa clases globales filter-section, filter-group, filter-label del design-system -->
+  <div class="filter-section">
     <v-row dense>
+
       <!-- Filtro por Estado -->
       <v-col cols="12" md="4">
         <div class="filter-group">
-          <h4 class="filter-label mb-2">Por Estado</h4>
-          <div class="filter-options">
-            <v-checkbox 
-              :model-value="filtros.agotado" 
-              @update:model-value="$emit('update:agotado', $event)" 
-              label="Agotados (Stock = 0)" 
-              dense 
-              hide-details 
-              class="mb-2" 
-            />
-            <v-checkbox 
-              :model-value="filtros.critico" 
-              @update:model-value="$emit('update:critico', $event)" 
-              label="Críticos (Stock ≤ Umbral)" 
-              dense 
-              hide-details 
-            />
-          </div>
+          <h4 class="filter-label mb-2">
+            <v-icon size="14" class="mr-1">mdi-circle-slice-8</v-icon>
+            Por Estado
+          </h4>
+          <v-checkbox
+            :model-value="filtros.agotado"
+            label="Agotados (Stock = 0)"
+            density="compact"
+            hide-details
+            class="mb-1"
+            color="error"
+            @update:model-value="$emit('update:agotado', $event)"
+          />
+          <v-checkbox
+            :model-value="filtros.critico"
+            label="Críticos (Stock ≤ Umbral)"
+            density="compact"
+            hide-details
+            color="warning"
+            @update:model-value="$emit('update:critico', $event)"
+          />
         </div>
       </v-col>
 
       <!-- Filtro por Tipo -->
       <v-col cols="12" md="4">
         <div class="filter-group">
-          <h4 class="filter-label mb-2">Por Tipo</h4>
-          <div class="filter-options">
-            <v-checkbox 
-              :model-value="filtros.tipo.producto" 
-              @update:model-value="$emit('update:tipo', { tipo: 'producto', valor: $event })" 
-              label="Productos" 
-              dense 
-              hide-details 
-              class="mb-2" 
-            />
-            <v-checkbox 
-              :model-value="filtros.tipo.insumo" 
-              @update:model-value="$emit('update:tipo', { tipo: 'insumo', valor: $event })" 
-              label="Insumos" 
-              dense 
-              hide-details 
-              class="mb-2" 
-            />
-            <v-checkbox 
-              :model-value="filtros.tipo.servicio" 
-              @update:model-value="$emit('update:tipo', { tipo: 'servicio', valor: $event })" 
-              label="Servicios c/ insumos" 
-              dense 
-              hide-details 
-            />
-          </div>
+          <h4 class="filter-label mb-2">
+            <v-icon size="14" class="mr-1">mdi-tag-multiple</v-icon>
+            Por Tipo
+          </h4>
+          <v-checkbox
+            :model-value="filtros.tipo.producto"
+            label="Productos"
+            density="compact"
+            hide-details
+            class="mb-1"
+            color="primary"
+            @update:model-value="$emit('update:tipo', { tipo: 'producto', valor: $event })"
+          />
+          <v-checkbox
+            :model-value="filtros.tipo.insumo"
+            label="Insumos"
+            density="compact"
+            hide-details
+            class="mb-1"
+            color="secondary"
+            @update:model-value="$emit('update:tipo', { tipo: 'insumo', valor: $event })"
+          />
+          <v-checkbox
+            :model-value="filtros.tipo.servicio"
+            label="Servicios c/ insumos"
+            density="compact"
+            hide-details
+            color="success"
+            @update:model-value="$emit('update:tipo', { tipo: 'servicio', valor: $event })"
+          />
         </div>
       </v-col>
 
-      <!-- Botones de acción -->
+      <!-- Resultados y acciones -->
       <v-col cols="12" md="4">
-        <div class="filter-group">
-          <h4 class="filter-label mb-2">Acciones</h4>
-          <div class="d-flex gap-2">
-            <v-btn color="primary" size="small" @click="$emit('reset-filtros')">Limpiar Filtros</v-btn>
-            <v-chip color="info" label>{{ resultCount }} resultado(s)</v-chip>
+        <div class="filter-group d-flex flex-column justify-space-between h-100">
+          <h4 class="filter-label mb-3">
+            <v-icon size="14" class="mr-1">mdi-filter-check</v-icon>
+            Resultados
+          </h4>
+          <!-- result-badge: clase global del design-system -->
+          <div class="result-badge mb-3">
+            <span class="result-badge__count">{{ resultCount }}</span>
+            <span class="result-badge__label">item(s) coinciden</span>
           </div>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-filter-remove"
+            class="btn-smooth"
+            @click="$emit('reset-filtros')"
+          >
+            Limpiar Filtros
+          </v-btn>
         </div>
       </v-col>
+
     </v-row>
-  </v-card-subtitle>
+  </div>
 </template>
 
 <script setup>
@@ -86,42 +110,4 @@ defineProps({
 defineEmits(['update:agotado', 'update:critico', 'update:tipo', 'reset-filtros'])
 </script>
 
-<style scoped>
-.filter-group {
-  padding: var(--spacing-sm, 8px);
-  border-radius: var(--border-radius, 12px);
-  background: var(--surface-color);
-}
-
-.filter-label {
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: 600;
-  color: var(--primary-color, #1976D2);
-  margin: 0;
-}
-
-.filter-options {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs, 4px);
-}
-
-.gap-2 {
-  gap: var(--spacing-sm, 8px);
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.bg-surface-elevated {
-  background: var(--surface-elevated, #F8FAFC) !important;
-  border-radius: var(--border-radius, 12px);
-}
-
-.pa-4 {
-  padding: var(--spacing-lg, 24px);
-}
-
-.mb-2 {
-  margin-bottom: var(--spacing-sm, 8px);
-}
-</style>
+<!-- Sin <style scoped>: todo el diseño viene del design-system global -->

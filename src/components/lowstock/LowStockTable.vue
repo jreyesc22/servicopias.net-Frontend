@@ -1,5 +1,13 @@
 <template>
-  <v-card-text>
+  <v-card-text class="pa-0">
+    <!-- Barra de progreso durante carga -->
+    <v-progress-linear
+      :active="loading"
+      indeterminate
+      color="warning"
+      height="3"
+    />
+
     <v-data-table-virtual
       :headers="headers"
       :items="items"
@@ -20,7 +28,7 @@
         </v-chip>
       </template>
 
-      <!-- Celda de Tipo con badge -->
+      <!-- Celda de Tipo -->
       <template #item.tipo="{ item }">
         <v-chip
           :color="getTipoColor(item.tipo)"
@@ -35,36 +43,36 @@
       <!-- Celda de Insumos con tooltip -->
       <template #item.insumos="{ item }">
         <div v-if="item.insumos && item.insumos.length > 0">
-          <v-tooltip bottom>
+          <v-tooltip location="bottom">
             <template #activator="{ props }">
-              <v-chip 
-                v-bind="props" 
-                color="info" 
-                variant="flat"
-                size="small"
-              >
+              <v-chip v-bind="props" color="info" variant="flat" size="small">
                 {{ item.insumos.length }} insumo(s)
               </v-chip>
             </template>
-            <div style="max-width: 300px">
-              <div class="text-white">
-                <div v-for="ins in item.insumos" :key="ins.id" style="font-size: 12px; margin-bottom: 4px">
-                  <strong>{{ ins.nombre }}</strong> (cant: {{ ins.ItemComponentes?.cantidad || '-' }})
-                </div>
+            <!-- tooltip-content y tooltip-item: clases globales del design-system -->
+            <div class="tooltip-content">
+              <div
+                v-for="ins in item.insumos"
+                :key="ins.id"
+                class="tooltip-item"
+              >
+                <strong>{{ ins.nombre }}</strong>
+                <span class="tooltip-item__secondary">
+                  (cant: {{ ins.ItemComponentes?.cantidad || '-' }})
+                </span>
               </div>
             </div>
           </v-tooltip>
         </div>
-        <div v-else class="text-caption text-grey">
-          -
-        </div>
+        <span v-else class="text-caption text-disabled">—</span>
       </template>
 
-      <!-- Estado vacío -->
+      <!-- Estado vacío — usa clases globales empty-state del design-system -->
       <template #no-data>
-        <div class="pa-8 text-center">
-          <v-icon size="48" class="mb-4 text-grey">mdi-database-search</v-icon>
-          <p class="text-body1 text-grey-darken-1">{{ emptyMessage }}</p>
+        <div class="empty-state">
+          <v-icon size="52" class="empty-state__icon">mdi-database-search</v-icon>
+          <p class="empty-state__title">Sin resultados</p>
+          <p class="empty-state__message">{{ emptyMessage }}</p>
         </div>
       </template>
     </v-data-table-virtual>
@@ -80,6 +88,10 @@ defineProps({
   threshold: {
     type: Number,
     default: 5
+  },
+  loading: {
+    type: Boolean,
+    default: false
   },
   emptyMessage: {
     type: String,
@@ -110,44 +122,12 @@ const getTipoColor = (tipo) => {
 </script>
 
 <style scoped>
+/* Solo el border-radius de la tabla es específico de este componente */
 .lowstock-table {
-  border-radius: var(--border-radius, 12px);
-}
-
-/* Row styling por estado */
-:deep(tbody tr) {
-  transition: background-color var(--transition-base, 0.3s);
+  border-radius: 0;
 }
 
 :deep(.v-data-table__tr:hover) {
-  background-color: rgba(25, 118, 210, 0.04);
-}
-
-.text-grey {
-  color: rgba(0, 0, 0, 0.54);
-}
-
-.text-grey-darken-1 {
-  color: rgba(0, 0, 0, 0.72);
-}
-
-.text-white {
-  color: white;
-}
-
-.text-caption {
-  font-size: 0.75rem;
-}
-
-.pa-8 {
-  padding: var(--spacing-2xl, 32px);
-}
-
-.mb-4 {
-  margin-bottom: var(--spacing-lg, 24px);
-}
-
-.pa-4 {
-  padding: var(--spacing-lg, 24px);
+  background-color: rgba(245, 124, 0, 0.04);
 }
 </style>
