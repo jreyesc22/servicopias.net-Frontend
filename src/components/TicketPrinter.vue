@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { generarTicket } from '@/utils/ticketTemplate.js'
+import { generarContenidoTicket } from '@/utils/ticketTemplate.js'
 import { printerService } from '@/services/printer.service.js'
 
 export default {
@@ -67,8 +67,8 @@ export default {
       this.imprimiendo = true;
 
       try {
-        // Generar ticket usando la plantilla
-        const textoTicket = generarTicket(this.orden, this.pago);
+        // Generar solo contenido; los comandos finales los agrega el servicio
+        const textoTicket = generarContenidoTicket(this.orden, this.pago);
         console.log('TicketPrinter: Ticket generado, longitud:', textoTicket.length);
 
         // Configurar el servicio con la URL proporcionada
@@ -76,11 +76,11 @@ export default {
           servidorUrl: this.servidorImpresion 
         });
 
-        // Imprimir usando el servicio (sin agregar comandos extra, ya están en generarTicket)
+        // Imprimir usando el servicio y respetando la configuración de cajón/corte
         const resultado = await printerService.imprimirRaw(textoTicket, {
           validarConexion: true,
-          abrirCajon: false, // Ya incluido en el ticket
-          cortar: false      // Ya incluido en el ticket
+          abrirCajon: this.abrirCajon,
+          cortar: this.cortarPapel
         });
 
         if (resultado.success) {
