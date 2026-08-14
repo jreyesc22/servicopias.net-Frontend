@@ -426,11 +426,33 @@
             :pagosCaja="pagosCaja"
             @pdf-generated="onPDFGenerated"
           />
+
+          <TicketPrinter
+            v-if="ordenSeleccionada"
+            ref="ticketPrinter"
+            :orden="ordenSeleccionada"
+            :pago="null"
+            :abrirCajon="false"
+            :cortarPapel="true"
+          />
         </v-card-text>
 
-        <v-card-actions class="justify-end">
+          <v-card-actions class="justify-end ga-2 flex-wrap card-actions-bar">
+            <v-btn 
+              color="primary" 
+              variant="tonal"
+              class="btn-smooth"
+              @click="reimprimirTicket"
+              :loading="reimprimiendoTicket"
+              :disabled="!componenteDetalleReady"
+              prepend-icon="mdi-printer-outline"
+            >
+              {{ reimprimiendoTicket ? 'Reimprimiendo...' : 'Reimprimir Ticket' }}
+            </v-btn>
           <v-btn 
-            color="purple" 
+              color="error" 
+              variant="tonal"
+              class="btn-smooth"
             @click="exportarPDF"
             :loading="generandoPDF"
             :disabled="!componenteDetalleReady"
@@ -491,6 +513,7 @@
 
 <script>
 
+import TicketPrinter from '../TicketPrinter.vue'
 import OrdenDetalle from './OrdenDetalle.vue'
 import AbonarOrden from '../caja/AbonarOrden.vue'
 import AuthService from '@/services/auth.service'
@@ -499,7 +522,7 @@ import { useBusquedaOrdenes } from '@/components/composables/useBusquedaOrdenes'
 
 export default {
   name: 'ListaOrdenes',
-  components: { OrdenDetalle, AbonarOrden },
+  components: { OrdenDetalle, AbonarOrden, TicketPrinter },
   setup() {
     const {
       loading,
@@ -545,6 +568,7 @@ export default {
 
       // Estado para PDF
       generandoPDF: false,
+      reimprimiendoTicket: false,
       componenteDetalleReady: false,
 
       // Items por página local (para sincronizar con el composable)
@@ -813,6 +837,34 @@ export default {
         })
       } finally {
         this.generandoPDF = false
+      }
+    },
+
+    async reimprimirTicket() {
+      if (!this.componenteDetalleReady || !this.$refs.ticketPrinter) {
+        this.mostrarSnackbar({
+          text: 'El componente de impresión no está listo',
+          color: 'warning'
+        })
+        return
+      }
+
+      this.reimprimiendoTicket = true
+
+      try {
+        await this.$refs.ticketPrinter.imprimir()
+        this.mostrarSnackbar({
+          text: 'Ticket reimpreso sin abrir el cajón',
+          color: 'success'
+        })
+      } catch (error) {
+        console.error('Error al reimprimir ticket:', error)
+        this.mostrarSnackbar({
+          text: `Error al reimprimir ticket: ${error.message}`,
+          color: 'error'
+        })
+      } finally {
+        this.reimprimiendoTicket = false
       }
     },
 
